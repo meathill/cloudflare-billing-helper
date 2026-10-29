@@ -41,10 +41,21 @@ const hostState = () =>
   page.evaluate(() => {
     const host = document.querySelector('cf-billing-helper');
     const shadowText = host?.shadowRoot?.textContent ?? '';
+    const table = document.querySelector('#product-card, table');
+    const summary = document.querySelector('#summary-card');
+    const order = host && table
+      ? {
+          // 宿主应位于表格之前、摘要卡之后，且不能挂在 <html> 上（body 之后）
+          beforeTable: !!(host.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING),
+          afterSummary: summary ? !!(summary.compareDocumentPosition(host) & Node.DOCUMENT_POSITION_FOLLOWING) : null,
+          hostParentIsHtml: host.parentElement === document.documentElement,
+        }
+      : null;
     return {
       mounted: !!host && host.isConnected,
       hasWaiting: shadowText.includes('正在等待'),
       hasQuotaTable: shadowText.includes('免费额度'),
+      order,
     };
   });
 
@@ -72,6 +83,20 @@ await page.waitForTimeout(1500);
 const left = await hostState();
 console.log('④ SPA 路由离开:', JSON.stringify(left));
 
+// 场景 ⑤：表格延迟渲染——表格出现前不挂载，出现后挂载且位置正确
+await page.goto('http://localhost:8199/billing/billable-usage?late=1');
+await page.waitForTimeout(1000);
+const lateEarly = await hostState();
+await page.waitForTimeout(2500);
+const lateReady = await hostState();
+console.log('⑤ 表格延迟渲染: 表格出现前', JSON.stringify(lateEarly), '→ 出现后', JSON.stringify(lateReady));
+
+// 场景 ⑥：宿主被页面重渲染移除后自动原位重挂
+await page.evaluate(() => document.querySelector('cf-billing-helper')?.remove());
+await page.waitForTimeout(800);
+const revived = await hostState();
+console.log('⑥ 移除后自动重挂:', JSON.stringify(revived));
+
 // 服务 worker 是否正常
 let swInfo = 'unknown';
 try {
@@ -95,6 +120,21 @@ console.log(logs.join('\n') || '(无日志)');
 await context.close();
 server.close();
 
-const pass = direct.hasQuotaTable && !other.mounted && spa.hasQuotaTable && !left.mounted;
+const pass =
+  direct.hasQuotaTable &&
+  direct.order?.beforeTable &&
+  direct.order?.afterSummary &&
+  !direct.order?.hostParentIsHtml &&
+  !other.mounted &&
+  spa.hasQuotaTable &&
+  !left.mounted &&
+  // ⑤ 表格出现前不挂载；出现后挂载且位置正确
+  !lateEarly.mounted &&
+  lateReady.hasQuotaTable &&
+  lateReady.order?.beforeTable &&
+  !lateReady.order?.hostParentIsHtml &&
+  // ⑥ 被移除后自动重挂
+  revived.hasQuotaTable &&
+  !revived.order?.hostParentIsHtml;
 console.log(pass ? '\n✅ 全部场景通过' : '\n❌ 有场景未通过');
 process.exit(pass ? 0 : 1);

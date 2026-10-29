@@ -116,7 +116,7 @@ function detectColumns(cells: string[]): ColumnMap | null {
   };
 }
 
-function findUsageTable(root: Document | Element): Element | null {
+export function findUsageTable(root: Document | Element): Element | null {
   const tables = Array.from(root.querySelectorAll('table'));
   for (const t of tables) {
     const headText = (t.querySelector('thead') ?? t).textContent ?? '';

@@ -39,7 +39,7 @@
       <div style="height:120px;background:linear-gradient(#e8f0e8,#fff);border-radius:6px"></div>
     </div>
 
-    <div class="card">
+    <div class="card" id="product-card">
       <table>
         <thead>
           <tr><th>产品</th><th>总使用量</th><th>可计费使用量</th><th class="cost">使用成本</th></tr>
@@ -85,5 +85,13 @@
     </div>
   </section>
 </main>
+<script>
+  // 模拟 dash 异步渲染：?late 时表格延迟 2 秒才出现
+  if (new URLSearchParams(location.search).has('late')) {
+    const card = document.getElementById('product-card');
+    card.remove();
+    setTimeout(() => document.querySelector('main section').appendChild(card), 2000);
+  }
+</script>
 </body>
 </html>
