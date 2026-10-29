@@ -1,73 +1,99 @@
 # Cloudflare Billing Helper
 
-浏览器扩展：增强 Cloudflare Dashboard 的「可计费使用量」页
-（`dash.cloudflare.com/{accountId}/billing/billable-usage`），解决官方页面看不到免费额度余量、无法预估耗尽时间、看不出钱花在哪个应用上的问题。
+> 把 Cloudflare「可计费使用量」页面变成一张看得懂的配额驾驶舱：
+> **免费额度还剩多少、什么时候会耗尽、预计花多少钱、钱花在哪个 Worker / namespace 上。**
 
-## 功能
+项目主页：<https://meathill.com/cloudflare-billing-helper> · [English](https://meathill.com/en/cloudflare-billing-helper)
 
-1. **免费额度可视化** — 每个计费行显示「已用 / 免费额度 / 剩余」进度条与状态色（绿 <70%、琥珀 70–100%、红超量/将耗尽）。
-2. **耗尽预警** — 面板顶部列出会在本账期内耗尽免费额度的产品，并给出预计耗尽日期：
-   - 请求类产品（CPU、操作数、请求数…）按日均线性外推；
-   - 存储类产品（KV/R2/DO 的 GB-months）按每日存储序列做趋势回归；
-   - 扩展每天自存一份快照，运行几天后即使接口没有历史也能预测趋势（趋势图同步生成）。
-3. **逐产品预估** — 日均用量、按日均外推的本周期预计用量、预计超额费用（有效费率优先用「成本 ÷ 可计费量」反推）。
-4. **按应用拆分** — 点击产品行展开，通过 dashboard 内部 GraphQL/REST（复用登录 cookie，无需 API token）拆到具体应用：
-   - Workers：每个 Worker 的 CPU 时间与请求
-   - KV：每个 namespace 的 GB-months、key 数、读/写/删/列操作
-   - D1：每个数据库的文件大小、行读写
-   - R2：每个 bucket 的 GB-months、Class A/B 操作
-   - Durable Objects：请求、存储（字段名未见完整公开文档，采用候选查询依次尝试，失败时该行降级提示，不影响其他行）
-5. **费用构成** — 横向条形图显示各产品费用占比；**额度消耗趋势** — 多折线图（来自每日快照）。
+![面板截图](docs/screenshots/panel.png)
 
-隐私：所有数据仅在本地处理（`chrome.storage`），扩展只访问 `dash.cloudflare.com` 自身，不请求任何第三方服务。
+## 解决的问题
+
+Cloudflare 账单页只告诉你「用了多少、花了多少」，但不告诉你：
+
+1. **免费额度还剩多少** —— 每个产品都有一行进度条和剩余量，超过 70% 变黄、超量变红；
+2. **什么时候会耗光** —— 按日均（请求类）或存储趋势（GB-months 类）外推，直接给出预计耗尽日期，方便你在 KV → R2 这类迁移上提前决策；
+3. **预计要花多少钱** —— 逐产品外推本周期用量与费用；本周期还没产生费用的产品用官方目录价估算（标 `≈`）；
+4. **钱花在哪个应用上** —— 展开产品行，利用你的登录态调用 dashboard 内部接口，把总量拆到具体的 Worker / KV namespace / D1 数据库 / R2 bucket / Durable Object。
+
+另外还有费用构成条形图、额度消耗趋势折线图（基于扩展每天自存的快照）。
+
+## 功能一览
+
+| 功能 | 说明 |
+| --- | --- |
+| 免费额度进度 | 29 个计费行全覆盖，额度内/预警/超量三色状态 |
+| 耗尽预警 | 面板顶部汇总「本周期将耗尽」的产品及日期，列表按紧急程度排序 |
+| 逐产品预估 | 日均用量、预计周期用量、预计超额费用（页面费率优先，缺失时用官方目录价并标 `≈`） |
+| 按应用拆分 | Workers / KV / D1 / R2 / Durable Objects 五族，按消耗降序展示占比 |
+| 趋势图 | 每日额度消耗曲线（扩展本地留存快照，保留 3 个账期） |
+| 隐私 | 全部数据仅在本地处理，只访问 `dash.cloudflare.com` 自身，不经过任何第三方 |
+
+## 安装
+
+> Chrome Web Store 上架准备中。目前可用「加载已解压的扩展」方式安装。
+
+```bash
+git clone https://github.com/meathill/cloudflare-billing-helper.git
+cd cloudflare-billing-helper
+pnpm install
+pnpm build          # 产物在 .output/chrome-mv3
+```
+
+1. 打开 `chrome://extensions`，开启「开发者模式」；
+2. 点「加载已解压的扩展程序」，选择 `.output/chrome-mv3`；
+3. 打开 [Cloudflare Dashboard → 账单 → 可计费使用量](https://dash.cloudflare.com/)（`/{accountId}/billing/billable-usage`），面板会出现在「支出摘要」下方。
+
+**升级**：`pnpm build`（自动 +1 patch 版本）→ 扩展页点刷新 → 账单页整页刷新。面板标题栏与控制台会显示版本号。
+
+## 使用说明
+
+- 鼠标悬停 `≈` 费用可查看估算依据；展开产品行查看按应用拆分，结果缓存 10 分钟；
+- 页脚「接口自检」会逐项探测拆分接口在当前账号下是否可用，失败项会显示原始错误（便于反馈校准）；
+- 每个账期首次打开起，扩展每天记录一次用量快照，趋势图需要积累 2 天以上数据。
+
+## 隐私
+
+- 无任何远程请求：不发送遥测，不加载第三方脚本；
+- 仅使用浏览器会话 cookie 访问 `dash.cloudflare.com` 内部接口读取你自己的账单与用量数据；
+- 缓存与快照保存在 `chrome.storage` 本地，最多保留 3 个账期。
 
 ## 开发
 
 ```bash
-pnpm install
-pnpm dev          # 开发模式（热更新），按提示加载 .output/chrome-mv3
-pnpm build        # 生产构建 → .output/chrome-mv3（自动调升 patch 版本号）
-pnpm build:only   # 只构建，不改版本号
-pnpm zip          # 打包 zip
-pnpm test         # vitest 单测（预估算法、DOM 解析）
-pnpm compile      # vue-tsc 类型检查
+pnpm dev                  # 开发模式（热更新）
+pnpm build                # 生产构建（自动调升 patch 版本）
+pnpm build:only           # 只构建，不改版本
+pnpm test                 # vitest：预估算法、DOM 解析、排序、目录价（43 例）
+pnpm compile              # vue-tsc 类型检查
+node scripts/repro.mjs    # 真实 Chromium 加载扩展跑六个挂载场景
+node scripts/screenshots.mjs  # 生成文档截图
+node scripts/make-icons.mjs   # 重新生成图标
 ```
 
-手动加载：`chrome://extensions` → 开发者模式 → 「加载已解压的扩展程序」→ 选择 `.output/chrome-mv3`，然后打开账单页。
-**升级后**：在 `chrome://extensions` 点扩展卡片上的刷新按钮，再到账单页**整页刷新**（扩展重载不会自动重注入已打开的标签页）。
-面板标题栏显示当前扩展版本号，控制台 `[CFBH] content script vX.Y.Z 已注入` 可确认运行版本。
-
-## 实机调试
-
-```bash
-node scripts/repro.mjs    # 用真实 Chromium 加载扩展，跑 playground 页四个场景
-                          # （整页直载 / 其他账单页不挂载 / SPA 切入挂载 / 切离卸载）
-```
-
-`playground/index.html` 模拟账单页结构，content script 额外匹配了 `http://localhost:8199/*` 便于本地调试。
-面板不显示时，先看账单页 DevTools Console 里有没有 `[CFBH]` 日志：没有任何日志说明脚本未注入
-（检查 chrome://extensions 是否有报错、是否隐身窗口、URL 是否为 `/{accountId}/billing/billable-usage`）。
-
-## 结构
+技术栈：WXT + Vue 3 + TypeScript + 自绘 SVG 图表（无图表库）。
 
 ```
 entrypoints/
-  injected.content.ts   # MAIN-world：钩住页面 fetch/XHR，捕获账单接口 JSON（调试/后续增强）
-  content.ts            # ISOLATED：Shadow DOM 挂载 Vue 面板，SPA 自动重挂载
-  content/App.vue       # 面板根组件（预警条、额度表、图表）
-  content/components/   # QuotaTable / QuotaBar / BreakdownList / CostShareBars / QuotaTrendChart
+  injected.content.ts   # MAIN-world：转发 SPA 路由变化、捕获账单接口 JSON
+  content.ts            # ISOLATED：Shadow DOM 挂载面板，等表格渲染后插入、被移除自动重挂
+  content/              # Vue 面板与组件（QuotaTable / BreakdownList / 图表）
 lib/
-  products.ts           # 29 个计费行目录：免费额度、单位、颜色、产品族、拆分能力
+  products.ts           # 29 个计费行目录：免费额度、单位、颜色、产品族、官方目录价
   math.ts               # 日均/外推/耗尽日期/回归（纯函数）
-  parse/dom-parser.ts   # 页面表格解析（中英文界面兼容，不依赖私有 class）
-  api/                  # dash GraphQL 客户端 + workers/kv/d1/r2/do 拆分模块
-  cache.ts              # session 缓存（10 分钟）+ 每日快照（local，保留 3 个账期）
+  sort.ts               # 预警优先排序
+  parse/dom-parser.ts   # 页面表格解析（中英文界面兼容）
+  api/                  # dash GraphQL/REST：Workers/KV/D1/R2/DO 拆分与自检
+  cache.ts              # session 缓存 + 每日快照
 tests/                  # vitest
 ```
 
-## 实现说明与已知限制
+## 已知限制
 
-- 数据以页面 DOM 解析为准（对页面改版有兜底），MAIN-world 拦截的接口 JSON 目前仅用于调试：面板右上角「复制接口调试数据」可导出捕获内容，用于后续增强与 GraphQL 字段校准。
-- KV/R2/DO/Workers 拆分的 GraphQL 数据集字段名（如 `r2StorageAdaptiveGroups`、`durableObjectsStorageAdaptiveGroups`）未全部见于公开文档，代码按官方文档/常见命名编写并做候选尝试；某维度失败时仅该维度降级，扩展右上角按钮导出调试数据即可修正。
-- GB-months 为账期内日均字节的估算口径，与 Cloudflare 计费基本一致，UI 标注「估算」。
-- 图标暂未内置（开发版显示默认拼图图标）。
+- 拆分依赖 dashboard 内部 GraphQL 数据集，R2/DO/D1 的字段名未全部见于公开文档，个别维度可能暂不可用（行内会降级提示，可用「接口自检」定位）；
+- GB-months 为账期内日均字节的估算口径，与计费口径基本一致；
+- 仅支持 Cloudflare Workers Paid 账户的 self-serve 计费页。
+
+## License
+
+Private project, all rights reserved.
