@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import type { CycleInfo, PageData, ProductRow, Projection } from '../../../lib/types';
 import { specOf } from '../../../lib/products';
 import { projectRow } from '../../../lib/math';
+import { compareRows } from '../../../lib/sort';
 import { formatQty, formatMoney } from '../../../lib/format';
 import { makeT } from '../../../lib/i18n';
 import QuotaBar from './QuotaBar.vue';
@@ -43,11 +44,7 @@ const rows = computed<DisplayRow[]>(() => {
         advice: spec?.advice,
       };
     })
-    .sort((a, b) => {
-      const ca = a.projection.projectedCost ?? a.row.cost;
-      const cb = b.projection.projectedCost ?? b.row.cost;
-      return cb - ca || b.row.cost - a.row.cost;
-    });
+    .sort(compareRows);
 });
 
 defineExpose({ rows });
@@ -125,7 +122,12 @@ function statusClass(r: DisplayRow): string {
         <div class="col-remaining" :class="statusClass(r)">{{ remainingText(r) }}</div>
         <div class="col-avg">{{ r.projection.dailyAvg > 0 ? fmtQty(r.projection.dailyAvg, r.row.unit) + '/天' : '—' }}</div>
         <div class="col-projected">{{ fmtQty(r.projection.projectedTotal, r.row.unit) }}</div>
-        <div class="col-cost" :class="{ danger: (r.projection.projectedCost ?? 0) > 0 }">
+        <div
+          class="col-cost"
+          :class="{ danger: (r.projection.projectedCost ?? 0) > 0 }"
+          :title="r.projection.rateSource === 'catalog' ? '按官方目录价估算（本周期尚未产生费用）' : undefined"
+        >
+          <template v-if="(r.projection.projectedCost ?? 0) > 0 && r.projection.rateSource === 'catalog'">≈</template>
           {{ fmtMoney(r.projection.projectedCost) }}
         </div>
         <div class="col-exhaust" :class="statusClass(r)">{{ exhaustionText(r) }}</div>

@@ -69,6 +69,8 @@ export interface Projection {
   remainingQuota?: number;
   /** 预计费用所用的有效费率 */
   rateUsed?: number;
+  /** 费率来源：page=页面反推（准确） catalog=内置目录价（估算） */
+  rateSource?: 'page' | 'catalog';
   exhaustion: Exhaustion;
 }
 

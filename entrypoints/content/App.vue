@@ -194,9 +194,6 @@ async function runCheck(): Promise<void> {
           <button v-if="hasCaptures" class="btn" @click="copyDebug">
             {{ copied ? t('copied') : t('copyDebug') }}
           </button>
-          <button class="btn" :disabled="checking" @click="runCheck">
-            {{ checking ? '自检中…' : '接口自检' }}
-          </button>
           <button class="btn" @click="refresh">{{ t('refresh') }}</button>
         </div>
       </div>
@@ -258,6 +255,9 @@ async function runCheck(): Promise<void> {
       <div class="footer">
         {{ t('localOnly') }}
         <span v-if="pageData && !pageData.cycle"> · {{ t('noCycle') }}</span>
+        <button class="link-btn" :disabled="checking" @click="runCheck">
+          {{ checking ? '自检中…' : '接口自检' }}
+        </button>
       </div>
     </div>
   </div>
@@ -422,6 +422,19 @@ async function runCheck(): Promise<void> {
 }
 .check-err .check-detail {
   color: var(--cfbh-danger);
+}
+.link-btn {
+  border: none;
+  background: none;
+  padding: 0;
+  margin-left: 10px;
+  color: var(--cfbh-text-2);
+  font-size: 11px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.link-btn:hover {
+  color: var(--cfbh-text);
 }
 .footer {
   margin-top: 14px;

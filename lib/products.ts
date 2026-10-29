@@ -25,6 +25,11 @@ export interface ProductSpec {
   breakdown?: { family: ProductFamily; metric: string };
   /** 耗尽后的迁移建议 */
   advice?: string;
+  /**
+   * 官方目录单价（USD / 单位）。仅在页面反推不出有效费率时兜底
+   * （典型：本周期尚未产生费用、页面无“有效费率”文案）。
+   */
+  unitPrice?: number;
 }
 
 export const PRODUCTS: ProductSpec[] = [
@@ -312,9 +317,39 @@ export const PRODUCTS: ProductSpec[] = [
   },
 ];
 
+/** Workers Paid 官方目录价（USD / 单位，Cloudflare 公开定价）。 */
+const UNIT_PRICES: Record<string, number> = {
+  'workers-cpu-ms': 0.02 / 1e6, // $0.02 / 百万 ms
+  'workers-standard-requests': 0.3 / 1e6, // $0.30 / 百万请求
+  'worker-build-minutes': 0.005, // $0.005 / 分钟
+  'kv-storage': 0.5, // $0.50 / GB-month
+  'kv-read-operations': 0.5 / 1e6, // $0.50 / 百万次
+  'kv-write-operations': 5 / 1e6, // $5.00 / 百万次
+  'kv-delete-operations': 5 / 1e6,
+  'kv-list-operations': 5 / 1e6,
+  'd1-storage': 0.75, // $0.75 / GB-month
+  'd1-rows-read': 0.001 / 1e6, // $0.001 / 百万行
+  'd1-rows-written': 1 / 1e6, // $1.00 / 百万行
+  'r2-data-storage': 0.015, // $0.015 / GB-month
+  'r2-class-a-operations': 4.5 / 1e6, // $4.50 / 百万次
+  'r2-class-b-operations': 0.36 / 1e6, // $0.36 / 百万次
+  'do-compute-requests': 0.15 / 1e6, // $0.15 / 百万请求
+  'do-compute-duration': 12.5 / 1e6, // $12.50 / 百万 GB-s
+  'do-sql-storage': 0.2, // $0.20 / GB-month
+  'do-storage-rows-read': 0.001 / 1e6,
+  'do-storage-rows-written': 1 / 1e6,
+  'queues-standard-operations': 0.4 / 1e6, // $0.40 / 百万次
+  'email-service-sent': 0.35 / 1e3, // $0.35 / 千封
+  'images-transformed': 0.5 / 1e3, // $0.50 / 千次
+};
+
+for (const spec of PRODUCTS) {
+  const price = UNIT_PRICES[spec.key];
+  if (price != null) spec.unitPrice = price;
+}
+
 /** 名称归一化：小写、去括号内容、去非字母数字。 */
-export function normalizeName(name: string): string {
-  return name
+export function normalizeName(name: string): string {  return name
     .toLowerCase()
     .replace(/\([^)]*\)/g, '')
     .replace(/[^a-z0-9]+/g, '');

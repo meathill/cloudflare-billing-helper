@@ -37,7 +37,7 @@ function statusFor(quotaPct: number | undefined, exhaustion: Exhaustion): QuotaS
 }
 
 /** cumulative 类产品投影。 */
-export function projectCumulative(row: ProductRow, cycle: CycleInfo | null): Projection {
+export function projectCumulative(row: ProductRow, cycle: CycleInfo | null, spec?: ProductSpec | null): Projection {
   const observedDays = cycle?.observedDays ?? 0;
   const totalDays = cycle?.totalDays ?? 0;
   const dailyAvg = observedDays > 0 ? row.totalUsage / observedDays : 0;
@@ -67,7 +67,7 @@ export function projectCumulative(row: ProductRow, cycle: CycleInfo | null): Pro
     };
   }
 
-  const rate = deriveRate(row);
+  const { rate, source } = deriveRate(row, spec);
   const projectedBillable = included != null ? Math.max(0, projectedTotal - included) : Math.max(0, projectedTotal);
   const projectedCost = rate != null ? projectedBillable * rate : undefined;
 
@@ -79,14 +79,29 @@ export function projectCumulative(row: ProductRow, cycle: CycleInfo | null): Pro
     quotaPct,
     remainingQuota,
     rateUsed: rate,
+    rateSource: source,
     exhaustion,
   };
 }
 
-export function deriveRate(row: ProductRow): number | undefined {
-  if (row.effectiveRate != null && row.effectiveRate > 0) return row.effectiveRate;
-  if (row.billableUsage > 0 && row.cost > 0) return row.cost / row.billableUsage;
-  return undefined;
+/**
+ * 有效费率：优先页面反推（成本 ÷ 可计费量，最准确）；
+ * 本周期尚未产生费用时回落到内置官方目录价（标记为估算）。
+ */
+export function deriveRate(
+  row: ProductRow,
+  spec?: ProductSpec | null,
+): { rate?: number; source?: 'page' | 'catalog' } {
+  if (row.effectiveRate != null && row.effectiveRate > 0) {
+    return { rate: row.effectiveRate, source: 'page' };
+  }
+  if (row.billableUsage > 0 && row.cost > 0) {
+    return { rate: row.cost / row.billableUsage, source: 'page' };
+  }
+  if (spec?.unitPrice != null && spec.unitPrice > 0) {
+    return { rate: spec.unitPrice, source: 'catalog' };
+  }
+  return {};
 }
 
 /**
@@ -97,6 +112,7 @@ export function projectGauge(
   row: ProductRow,
   cycle: CycleInfo | null,
   series: { date: string; value: number; }[] = [],
+  spec?: ProductSpec | null,
 ): Projection {
   const quotaPct = row.included != null && row.included > 0 ? row.totalUsage / row.included : undefined;
   const remainingQuota = row.included != null ? Math.max(0, row.included - row.totalUsage) : undefined;
@@ -129,7 +145,7 @@ export function projectGauge(
     exhaustion = { status: 'ok', inThisCycle: false, basis: 'none' };
   }
 
-  const rate = deriveRate(row);
+  const { rate, source } = deriveRate(row, spec);
   // gauge 的“可计费”即超出部分的水位；无序列按当前水位估算
   const projectedBillable = row.included != null ? Math.max(0, projectedTotal - row.included) : projectedTotal;
   const projectedCost = rate != null ? projectedBillable * rate : undefined;
@@ -142,6 +158,7 @@ export function projectGauge(
     quotaPct,
     remainingQuota,
     rateUsed: rate,
+    rateSource: source,
     exhaustion,
   };
 }
@@ -161,7 +178,7 @@ export function projectRow(
   series: { date: string; value: number; }[] = [],
 ): Projection {
   const kind = spec?.kind ?? (row.unit === 'GB-months' ? 'gauge' : 'cumulative');
-  return kind === 'gauge' ? projectGauge(row, cycle, series) : projectCumulative(row, cycle);
+  return kind === 'gauge' ? projectGauge(row, cycle, series, spec) : projectCumulative(row, cycle, spec);
 }
 
 /** 生成某行的时间序列（优先扩展自留存档）。由调用方传入快照数据。 */
