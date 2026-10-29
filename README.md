@@ -25,14 +25,17 @@
 
 ```bash
 pnpm install
-pnpm dev        # 开发模式（热更新），按提示加载 .output/chrome-mv3
-pnpm build      # 生产构建 → .output/chrome-mv3
-pnpm zip        # 打包 zip
-pnpm test       # vitest 单测（预估算法、DOM 解析）
-pnpm compile    # vue-tsc 类型检查
+pnpm dev          # 开发模式（热更新），按提示加载 .output/chrome-mv3
+pnpm build        # 生产构建 → .output/chrome-mv3（自动调升 patch 版本号）
+pnpm build:only   # 只构建，不改版本号
+pnpm zip          # 打包 zip
+pnpm test         # vitest 单测（预估算法、DOM 解析）
+pnpm compile      # vue-tsc 类型检查
 ```
 
 手动加载：`chrome://extensions` → 开发者模式 → 「加载已解压的扩展程序」→ 选择 `.output/chrome-mv3`，然后打开账单页。
+**升级后**：在 `chrome://extensions` 点扩展卡片上的刷新按钮，再到账单页**整页刷新**（扩展重载不会自动重注入已打开的标签页）。
+面板标题栏显示当前扩展版本号，控制台 `[CFBH] content script vX.Y.Z 已注入` 可确认运行版本。
 
 ## 实机调试
 

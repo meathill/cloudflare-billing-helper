@@ -154,6 +154,14 @@ const hasCaptures = computed(() => (props.getCaptures?.() ?? []).length > 0);
 
 const productCount = computed(() => pageData.value?.products.length ?? 0);
 
+const version = (() => {
+  try {
+    return chrome.runtime.getManifest().version;
+  } catch {
+    return '';
+  }
+})();
+
 // 接口自检
 const checkItems = ref<SelfCheckItem[]>([]);
 const checking = ref(false);
@@ -180,6 +188,7 @@ async function runCheck(): Promise<void> {
           <span class="logo">⚡</span>
           <strong>{{ t('title') }}</strong>
           <span v-if="productCount > 0" class="count">{{ productCount }} 个产品</span>
+          <span class="count version">v{{ version }}</span>
         </div>
         <div class="actions">
           <button v-if="hasCaptures" class="btn" @click="copyDebug">
@@ -316,6 +325,10 @@ async function runCheck(): Promise<void> {
   color: var(--cfbh-text-2);
   font-size: 12px;
   font-weight: 400;
+}
+.version {
+  font-size: 11px;
+  opacity: 0.7;
 }
 .actions {
   display: flex;

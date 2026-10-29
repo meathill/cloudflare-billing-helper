@@ -23,7 +23,10 @@ export default defineContentScript({
   async main(ctx) {
     try {
       // eslint-disable-next-line no-console
-      console.info('[CFBH] content script 已注入', window.location.href);
+      console.info(
+        `[CFBH] content script v${chrome.runtime.getManifest().version} 已注入`,
+        window.location.href,
+      );
       const accountId = getAccountId();
       const captures: CapturedPayload[] = [];
 
