@@ -5,6 +5,8 @@ import { specOf } from '../../lib/products';
 import { parsePage } from '../../lib/parse/dom-parser';
 import { recordSnapshot, getSnapshotSeries } from '../../lib/cache';
 import { detectLang, makeT } from '../../lib/i18n';
+import { runSelfCheck } from '../../lib/api/selfcheck';
+import type { SelfCheckItem } from '../../lib/api/selfcheck';
 import type { CapturedPayload } from '../content';
 import QuotaTable from './components/QuotaTable.vue';
 import type { DisplayRow } from './components/QuotaTable.vue';
@@ -30,14 +32,25 @@ const seriesByProduct = ref<Record<string, { date: string; value: number }[]>>({
 
 let observer: MutationObserver | null = null;
 let parseTimer: number | undefined;
+let lastLogKey = '';
 
 function parseNow(): void {
   const parsed = parsePage(document);
   if (parsed) {
+    const logKey = `${parsed.products.length}:${parsed.cycle?.cycleStart.toISOString() ?? 'nocycle'}`;
+    if (logKey !== lastLogKey) {
+      lastLogKey = logKey;
+      // eslint-disable-next-line no-console
+      console.info(
+        `[CFBH] 解析成功：${parsed.products.length} 个产品行，账期 ${parsed.cycle ? '已识别' : '未识别'}`,
+      );
+    }
     pageData.value = parsed;
     waiting.value = false;
     void recordAndLoadSeries(parsed);
   } else if (!pageData.value) {
+    // eslint-disable-next-line no-console
+    console.info('[CFBH] 尚未解析到产品表格，继续等待页面渲染…');
     waiting.value = true;
   }
 }
@@ -140,6 +153,23 @@ async function copyDebug(): Promise<void> {
 const hasCaptures = computed(() => (props.getCaptures?.() ?? []).length > 0);
 
 const productCount = computed(() => pageData.value?.products.length ?? 0);
+
+// 接口自检
+const checkItems = ref<SelfCheckItem[]>([]);
+const checking = ref(false);
+async function runCheck(): Promise<void> {
+  if (!props.accountId || checking.value) return;
+  checking.value = true;
+  try {
+    checkItems.value = await runSelfCheck(props.accountId, pageData.value?.cycle ?? null);
+    // eslint-disable-next-line no-console
+    console.info('[CFBH] 接口自检结果', checkItems.value);
+  } catch (e) {
+    checkItems.value = [{ name: '接口自检', ok: false, detail: e instanceof Error ? e.message : String(e) }];
+  } finally {
+    checking.value = false;
+  }
+}
 </script>
 
 <template>
@@ -154,6 +184,9 @@ const productCount = computed(() => pageData.value?.products.length ?? 0);
         <div class="actions">
           <button v-if="hasCaptures" class="btn" @click="copyDebug">
             {{ copied ? t('copied') : t('copyDebug') }}
+          </button>
+          <button class="btn" :disabled="checking" @click="runCheck">
+            {{ checking ? '自检中…' : '接口自检' }}
           </button>
           <button class="btn" @click="refresh">{{ t('refresh') }}</button>
         </div>
@@ -197,6 +230,19 @@ const productCount = computed(() => pageData.value?.products.length ?? 0);
         <div v-if="trendSeries.length > 0" class="section">
           <div class="section-title">{{ t('quotaTrend') }}</div>
           <QuotaTrendChart :series="trendSeries" />
+        </div>
+
+        <div v-if="checkItems.length > 0" class="section">
+          <div class="section-title">接口自检</div>
+          <div
+            v-for="item in checkItems"
+            :key="item.name"
+            class="check-item"
+            :class="item.ok ? 'check-ok' : 'check-err'"
+          >
+            <span class="check-name">{{ item.ok ? '✓' : '✗' }} {{ item.name }}</span>
+            <span class="check-detail">{{ item.detail }}</span>
+          </div>
         </div>
       </template>
 
@@ -338,6 +384,31 @@ const productCount = computed(() => pageData.value?.products.length ?? 0);
   margin-bottom: 8px;
   text-transform: uppercase;
   letter-spacing: 0.03em;
+}
+.check-item {
+  display: flex;
+  gap: 10px;
+  padding: 4px 0;
+  font-size: 12px;
+  border-bottom: 1px dashed var(--cfbh-border);
+}
+.check-name {
+  white-space: nowrap;
+  min-width: 150px;
+}
+.check-detail {
+  color: var(--cfbh-text-2);
+  word-break: break-all;
+  font-size: 11px;
+}
+.check-ok .check-name {
+  color: var(--cfbh-ok);
+}
+.check-err .check-name {
+  color: var(--cfbh-danger);
+}
+.check-err .check-detail {
+  color: var(--cfbh-danger);
 }
 .footer {
   margin-top: 14px;
