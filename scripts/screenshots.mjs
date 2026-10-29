@@ -45,5 +45,15 @@ const host = page.locator('cf-billing-helper');
 await host.screenshot({ path: join(outDir, 'panel.png') });
 console.log('✓ docs/screenshots/panel.png');
 
+// Chrome Web Store 列表图：1280×800（含页面上下文）
+await page.setViewportSize({ width: 1280, height: 800 });
+await page.evaluate(() => {
+  const host = document.querySelector('cf-billing-helper');
+  host?.scrollIntoView({ block: 'center' });
+});
+await page.waitForTimeout(300);
+await page.screenshot({ path: join(outDir, 'store-1280x800.png') });
+console.log('✓ docs/screenshots/store-1280x800.png');
+
 await context.close();
 server.close();
