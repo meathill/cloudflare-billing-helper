@@ -67,9 +67,12 @@ pnpm build:only           # 只构建，不改版本
 pnpm test                 # vitest：预估算法、DOM 解析、排序、目录价（43 例）
 pnpm compile              # vue-tsc 类型检查
 node scripts/repro.mjs    # 真实 Chromium 加载扩展跑六个挂载场景
-node scripts/screenshots.mjs  # 生成文档截图
+node scripts/screenshots.mjs  # 生成文档截图（含商店 1280×800）
 node scripts/make-icons.mjs   # 重新生成图标
+node scripts/make-promo.mjs   # 生成商店宣传图（440×280 / 1400×560）
 ```
+
+商店上架文案与表单答案见 [`docs/store-listing.md`](docs/store-listing.md)。
 
 技术栈：WXT + Vue 3 + TypeScript + 自绘 SVG 图表（无图表库）。
 
