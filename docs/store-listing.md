@@ -1,16 +1,25 @@
-# Chrome Web Store Listing（v0.1.5）
+# Chrome Web Store Listing（v0.1.6）
 
 > 本文件是提交 Chrome Web Store 时可直接复制粘贴的完整文案与表单答案。
-> 图形资源见 `docs/store/` 与 `docs/screenshots/`，安装包见 `.output/cloudflare-billing-helper-*.zip`。
+> 图形资源见 `docs/store/` 与 `docs/screenshots/`，安装包见 `.output/cloudflare-billing-helper-0.1.6-chrome.zip`。
+
+## 〇、两套多语言机制（重要）
+
+| 机制 | 位置 | 作用 |
+| --- | --- | --- |
+| **Manifest `_locales`** | `public/_locales/{en,zh_CN}/messages.json`，manifest 用 `__MSG_extName__` / `__MSG_extDescription__`，`default_locale: en` | 决定 **Chrome 扩展管理页 / 工具栏提示** 里显示的名称与描述，随浏览器界面语言自动切换 |
+| **商店 Listing 语言** | Chrome Web Store Developer Dashboard → Store listing → Add language | 决定 **商店页面** 上的名称、简介、详细描述、截图，需在后台手动添加中文（简体）并分别填写 |
+
+两者互不影响：只配 manifest，商店页面仍只有默认语言；只加商店语言，浏览器 UI 里的名称仍是默认语言。本次已同时准备。
 
 ## 一、基本信息
 
 | 字段 | 值 |
 | --- | --- |
-| Item name（≤45 字符） | `Cloudflare Billing Helper` |
+| Item name（≤45 字符） | `Cloudflare Billing Helper`（中文列表名称：`Cloudflare 账单用量助手`） |
 | Category | Developer Tools |
-| Language（默认） | English |
-| 本地化语言 | 中文（简体） |
+| 语言（默认） | English |
+| 本地化语言 | 中文（简体）——需在 Dashboard「Add language」中手工添加 |
 | Visibility | Public |
 | Pricing | Free |
 | Website | https://meathill.com/cloudflare-billing-helper |
@@ -183,9 +192,10 @@ No. All code is bundled in the extension package; nothing is loaded or evaluated
 
 ## 六、提交步骤
 
-1. Chrome Web Store Developer Dashboard → New item → 上传 `.output/cloudflare-billing-helper-0.1.5-chrome.zip`；
-2. Store listing：粘贴上文名称 / 简介 / 详细描述（英文为默认，中文在「Add language」里添加）；
-3. 上传图标、截图与宣传图；填写 Website / Support / Privacy policy URL；
-4. Privacy practices：按第四节填写单一用途、权限说明、远程代码「No」、数据「Does not collect」；
-5. Distribution：Public / Free / All regions；
-6. 提交审核（新账号首次提交通常需要 1–3 个工作日）。
+1. Chrome Web Store Developer Dashboard → New item → 上传 `.output/cloudflare-billing-helper-0.1.6-chrome.zip`；
+2. Store listing（English）：粘贴上文英文名称 / 简介 / 详细描述；
+3. Store listing → **Add language → 中文（简体）**：粘贴中文名称 / 简介 / 详细描述（截图与图片可与默认语言共用）；
+4. 上传图标、截图与宣传图；填写 Website / Support / Privacy policy URL；
+5. Privacy practices：按第四节填写单一用途、权限说明、远程代码「No」、数据「Does not collect」；
+6. Distribution：Public / Free / All regions；
+7. 提交审核（新账号首次提交通常需要 1–3 个工作日）。

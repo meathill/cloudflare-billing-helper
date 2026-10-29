@@ -2,7 +2,7 @@
   "name": "cloudflare-billing-helper",
   "description": "Cloudflare 可计费使用量页增强：免费额度追踪、耗尽预警、用量预估与按应用拆分",
   "private": true,
-  "version": "0.1.5",
+  "version": "0.1.6",
   "type": "module",
   "scripts": {
     "dev": "wxt",

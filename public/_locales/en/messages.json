@@ -1,0 +1,9 @@
+{
+  "extName": {
+    "message": "Cloudflare Billing Helper",
+    "description": "Extension name in the browser UI"
+  },
+  "extDescription": {
+    "message": "Track free-tier quota, forecast exhaustion dates and cost, and break spend down by Worker, KV, D1, R2 and Durable Objects."
+  }
+}

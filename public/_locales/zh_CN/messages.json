@@ -1,0 +1,9 @@
+{
+  "extName": {
+    "message": "Cloudflare 账单用量助手",
+    "description": "浏览器界面中显示的扩展名称"
+  },
+  "extDescription": {
+    "message": "追踪 Cloudflare 免费额度余量，预测耗尽日期与本周期费用，按 Worker / KV / D1 / R2 / DO 拆分用量。"
+  }
+}
