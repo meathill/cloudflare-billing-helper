@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>CF Billing Helper playground</title>
+<style>
+  body { font-family: -apple-system, sans-serif; margin: 0; background: #f6f7f8; color: #1f2429; }
+  header { padding: 14px 28px; background: #fff; border-bottom: 1px solid #e4e7ec; font-size: 14px; }
+  main { display: grid; grid-template-columns: 240px 1fr; gap: 16px; padding: 16px 28px; }
+  aside { background: #fff; border: 1px solid #e4e7ec; border-radius: 10px; padding: 14px; height: fit-content; }
+  .card { background: #fff; border: 1px solid #e4e7ec; border-radius: 10px; padding: 16px 20px; margin-bottom: 16px; }
+  .summary { display: flex; gap: 48px; }
+  .summary b { display: block; font-size: 20px; }
+  .summary span { color: #6b7280; font-size: 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; color: #6b7280; font-weight: 500; padding: 8px 10px; border-bottom: 1px solid #e4e7ec; }
+  td { padding: 10px; border-bottom: 1px solid #f0f1f3; vertical-align: top; }
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; vertical-align: middle; }
+  .hint { color: #9ca3af; font-size: 12px; margin-top: 2px; }
+  .cost { text-align: right; }
+</style>
+</head>
+<body>
+<header>管理帐户 &gt; 账单 &gt; <b>可计费使用量</b></header>
+<main>
+  <aside>筛选 · 账单周期 Nov 2026</aside>
+  <section>
+    <div class="card" id="summary-card">
+      <h3 style="margin:0 0 12px">支出摘要</h3>
+      <div class="summary">
+        <div><span>总费用</span><b>$2.46</b><span>已观察使用量 Oct 17 - Oct 28, 2026</span></div>
+        <div><span>预计周期费用</span><b>$6.35</b><span>Oct 17 - Nov 16, 2026 · 已观察 31 个周期日中的 12 天</span></div>
+        <div><span>平均每日费用</span><b>$0.21</b><span>基于本周期观察到的使用量</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin:0 0 12px">成本明细</h3>
+      <div style="height:120px;background:linear-gradient(#e8f0e8,#fff);border-radius:6px"></div>
+    </div>
+
+    <div class="card">
+      <table>
+        <thead>
+          <tr><th>产品</th><th>总使用量</th><th>可计费使用量</th><th class="cost">使用成本</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="dot" style="background:#2f7d3b"></span><div>Workers CPU ms</div><div class="hint">(first 30M are included)</div></td>
+            <td>127.98M</td><td>97.99M</td>
+            <td class="cost"><div>$1.96</div><div class="hint">有效费率 $0.00 / unit</div></td>
+          </tr>
+          <tr>
+            <td><span class="dot" style="background:#9333ea"></span><div>KV Storage</div><div class="hint">(GB, First 1GB is included)</div></td>
+            <td>1.74 GB-months</td><td>1 GB-months</td>
+            <td class="cost"><div>$0.50</div><div class="hint">有效费率 $0.50 / GB-months</div></td>
+          </tr>
+          <tr>
+            <td><span class="dot" style="background:#22a06b"></span><div>Worker Build Minutes</div><div class="hint">(6000 minutes included per month)</div></td>
+            <td>471</td><td>0</td>
+            <td class="cost"><div>$0.00</div><div class="hint">本账单周期无使用费用</div></td>
+          </tr>
+          <tr>
+            <td><span class="dot" style="background:#17b8a6"></span><div>KV Delete Operations</div><div class="hint">(First 1M is included)</div></td>
+            <td>171.57k</td><td>0</td>
+            <td class="cost"><div>$0.00</div><div class="hint">本账单周期无使用费用</div></td>
+          </tr>
+          <tr>
+            <td><span class="dot" style="background:#c026d3"></span><div>KV List Operations</div><div class="hint">(First 1M is included)</div></td>
+            <td>462.76k</td><td>0</td>
+            <td class="cost"><div>$0.00</div><div class="hint">本账单周期无使用费用</div></td>
+          </tr>
+          <tr>
+            <td><span class="dot" style="background:#6b21a8"></span><div>Durable Objects Compute Requests</div><div class="hint">(First 1M is included)</div></td>
+            <td>38.07k</td><td>0</td>
+            <td class="cost"><div>$0.00</div><div class="hint">本账单周期无使用费用</div></td>
+          </tr>
+          <tr>
+            <td><span class="dot" style="background:#84cc16"></span><div>D1 - Storage GB-mo</div><div class="hint">(first 5GB included)</div></td>
+            <td>0.16 GB-months</td><td>0 GB-months</td>
+            <td class="cost"><div>$0.00</div><div class="hint">本账单周期无使用费用</div></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+</body>
+</html>

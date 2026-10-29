@@ -5,7 +5,10 @@
 import { defineContentScript } from '#imports';
 
 export default defineContentScript({
-  matches: ['https://dash.cloudflare.com/*/billing/billable-usage*'],
+  matches: [
+    'https://dash.cloudflare.com/*/billing/billable-usage*',
+    'http://localhost:8199/*',
+  ],
   world: 'MAIN',
   registration: 'manifest',
   main() {
@@ -45,6 +48,25 @@ export default defineContentScript({
       }
       return res;
     } as typeof fetch;
+
+    // SPA 路由变化：dash 路由器在 MAIN world 调 pushState，隔离世界 hook 不到，
+    // 必须在这里监听并转发给 content script。
+    const dispatchUrlChange = (): void => {
+      try {
+        window.postMessage({ source: 'cfbh', type: 'urlchange' }, window.location.origin);
+      } catch {
+        // ignore
+      }
+    };
+    for (const type of ['pushState', 'replaceState'] as const) {
+      const original = history[type].bind(history);
+      history[type] = function (this: History, ...args: Parameters<History['pushState']>) {
+        const result = original(...args);
+        dispatchUrlChange();
+        return result;
+      } as History['pushState'];
+    }
+    window.addEventListener('popstate', dispatchUrlChange);
 
     const xhrOpen = XMLHttpRequest.prototype.open;
     const xhrSend = XMLHttpRequest.prototype.send;

@@ -34,6 +34,17 @@ pnpm compile    # vue-tsc 类型检查
 
 手动加载：`chrome://extensions` → 开发者模式 → 「加载已解压的扩展程序」→ 选择 `.output/chrome-mv3`，然后打开账单页。
 
+## 实机调试
+
+```bash
+node scripts/repro.mjs    # 用真实 Chromium 加载扩展，跑 playground 页四个场景
+                          # （整页直载 / 其他账单页不挂载 / SPA 切入挂载 / 切离卸载）
+```
+
+`playground/index.html` 模拟账单页结构，content script 额外匹配了 `http://localhost:8199/*` 便于本地调试。
+面板不显示时，先看账单页 DevTools Console 里有没有 `[CFBH]` 日志：没有任何日志说明脚本未注入
+（检查 chrome://extensions 是否有报错、是否隐身窗口、URL 是否为 `/{accountId}/billing/billable-usage`）。
+
 ## 结构
 
 ```
