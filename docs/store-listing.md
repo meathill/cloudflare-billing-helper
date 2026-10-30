@@ -1,7 +1,7 @@
-# Chrome Web Store Listing（v0.1.10）
+# Chrome Web Store Listing（v0.2.0）
 
 > 本文件是提交 Chrome Web Store 时可直接复制粘贴的完整文案与表单答案。
-> 图形资源见 `docs/store/` 与 `docs/screenshots/`，安装包见 `.output/cloudflare-billing-helper-0.1.10-chrome.zip`。
+> 图形资源见 `docs/store/` 与 `docs/screenshots/`，安装包见 `.output/cloudflare-billing-helper-0.2.0-chrome.zip`。
 > 本次更新的说明见第四节；Chrome Web Store 后台没有独立的 release notes 字段（商店页只显示 "Updated on <日期>" 与版本号），更新说明需贴在描述开头，文案已同步合并进第三节。
 
 ## 〇、两套多语言机制（重要）
@@ -49,7 +49,7 @@ Cloudflare Billing Helper turns the dashboard's Billable Usage page into a quota
 
 See free-tier headroom, when each product will run out, how much it will cost, and which Worker or namespace is driving the number — without creating an API token.
 
-WHAT'S NEW IN 0.1.10
+WHAT'S NEW IN 0.2.0
 
 • Daily cost curve — every time you open this page the extension records a snapshot of your usage and cost and turns them into a daily cost curve (total plus your top products). Days that spike or drop sharply are marked with a red dot and called out at the top of the panel.
 • Quota-consumption curve for every product, with hover values and a legend you can switch products off in.
@@ -106,7 +106,7 @@ Source: https://github.com/meathill/cloudflare-billing-helper
 
 在页面上直接看到：每个产品还剩多少免费额度、什么时候会耗尽、本周期预计花多少钱，以及花费到底来自哪个 Worker / namespace——无需创建 API Token。
 
-0.1.10 更新内容
+0.2.0 更新内容
 
 • 每日费用曲线——每次打开本页都会记录一条用量与费用快照，换算成每日费用曲线（总费用与费用最高的产品各一条），某天费用暴涨暴跌会标出红点并在面板顶部提示。
 • 每个产品的额度消耗曲线，支持悬停查看当天数值、图例点击开关。
@@ -162,10 +162,10 @@ Source: https://github.com/meathill/cloudflare-billing-helper
 > 因此更新说明的落地位置是**详细描述的开头**（下方文案已合并进第三节描述），本节保留一份可独立复制粘贴的版本，
 > 以后每次发新版，在这里追加一段并把同样的内容补到描述开头即可。
 
-### v0.1.10 更新说明（English）
+### v0.2.0 更新说明（English）
 
 ```
-WHAT'S NEW IN 0.1.10
+WHAT'S NEW IN 0.2.0
 
 • Daily cost curve
 Every time you open the Billable Usage page, the extension records a snapshot of your usage and cost, then turns them into a daily cost curve — the total plus your top-spending products. Any day that jumps or drops sharply is marked with a red dot and called out at the top of the panel, so a surprise overage no longer slips by.
@@ -177,10 +177,10 @@ The quota chart now shows how each product's free-tier usage moves over time. Ho
 Curves restart at every new billing period: daily values are computed inside a period only, the first day of a period is averaged from the period start, and periods are never mixed when judging whether a day was unusual.
 ```
 
-### v0.1.10 更新说明（中文（简体））
+### v0.2.0 更新说明（中文（简体））
 
 ```
-0.1.10 更新内容
+0.2.0 更新内容
 
 • 每日费用曲线
 每次打开「可计费使用量」时，扩展都会记录一条用量与费用快照，并换算成每日费用曲线：总费用一条，费用最高的产品各一条。某天费用突然涨上去或掉下来时，曲线上会标出红点，面板顶部也会直接提示，意外超额不再被忽略。
@@ -194,15 +194,11 @@ Curves restart at every new billing period: daily values are computed inside a p
 
 ### 版本记录
 
-| 版本 | 主要变更 | 提交 |
-| --- | --- | --- |
-| 0.1.10 | 每日费用与额度曲线、暴涨暴跌提示、跨账期重算 | 7e0d507 |
-| 0.1.6 | manifest 多语言（扩展管理页的名称与描述随浏览器界面语言切换） | 243d713 |
-| 0.1.5 | 发布准备：扩展图标、商店规格截图、README 重写 | 0d14eb3 / d616b26 / f3747c4 |
-| 0.1.3 | 耗尽产品补预计费用（官方目录价兜底）、排序优先预警、自检移至页脚 | 9a3aa77 |
-| 0.1.2 | 等产品表格渲染后再挂载，锚点失效不再退化为页面底部 | 6647693 |
-| 0.1.1 | 构建自动调升 patch 版本；面板与日志显示版本号 | dcb3d1e |
-| 0.1.0 | 首版：免费额度追踪、耗尽预警、用量预估与按应用拆分 | 4381de8 |
+| 版本 | 说明 |
+| --- | --- |
+| 0.2.0 | 首次公开发布：免费额度追踪、耗尽预警、逐产品预估、按应用拆分、每日费用与额度曲线、暴涨暴跌提示 |
+
+> 0.1.x 为发布前的内部迭代版本，未公开发布；对外版本记录自 0.2.0 起。
 
 ## 五、隐私与权限表单（Privacy practices）
 
@@ -255,7 +251,7 @@ No. All code is bundled in the extension package; nothing is loaded or evaluated
 
 ## 七、提交步骤
 
-1. Chrome Web Store Developer Dashboard → New item → 上传 `.output/cloudflare-billing-helper-0.1.10-chrome.zip`；
+1. Chrome Web Store Developer Dashboard → New item → 上传 `.output/cloudflare-billing-helper-0.2.0-chrome.zip`；
 2. Store listing（English）：粘贴上文英文名称 / 简介 / 详细描述，**描述开头先贴第四节英文更新说明**；
 3. Store listing → **Add language → 中文（简体）**：粘贴中文名称 / 简介 / 详细描述（描述开头贴第四节中文更新说明；截图与图片可与默认语言共用）；
 4. 上传图标、截图与宣传图；填写 Website / Support / Privacy policy URL；

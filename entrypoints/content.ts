@@ -61,6 +61,8 @@ export default defineContentScript({
           return;
         }
         if (msg.type === 'capture') {
+          // 抓包数据只用于本地调试接口字段，生产构建不保留
+          if (!import.meta.env.DEV) return;
           captures.push({ url: msg.url ?? '', data: msg.data, at: Date.now() });
           if (captures.length > 10) captures.shift();
           // eslint-disable-next-line no-console

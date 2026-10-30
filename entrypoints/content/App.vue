@@ -290,6 +290,9 @@ async function copyDebug(): Promise<void> {
 
 const hasCaptures = computed(() => (props.getCaptures?.() ?? []).length > 0);
 
+/** 抓包调试按钮只在开发构建出现（生产包不保留调试入口） */
+const isDev = import.meta.env.DEV;
+
 const productCount = computed(() => pageData.value?.products.length ?? 0);
 
 const version = (() => {
@@ -329,7 +332,7 @@ async function runCheck(): Promise<void> {
           <span class="count version">v{{ version }}</span>
         </div>
         <div class="actions">
-          <button v-if="hasCaptures" class="btn" @click="copyDebug">
+          <button v-if="isDev && hasCaptures" class="btn" @click="copyDebug">
             {{ copied ? t('copied') : t('copyDebug') }}
           </button>
           <button class="btn" @click="refresh">{{ t('refresh') }}</button>
