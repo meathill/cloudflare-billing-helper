@@ -7,7 +7,8 @@ import { defineContentScript } from '#imports';
 export default defineContentScript({
   matches: [
     'https://dash.cloudflare.com/*/billing/billable-usage*',
-    'http://localhost:8199/*',
+    // 本地 playground 只在开发构建注入，生产包不带 localhost（保持上架包干净）
+    ...(import.meta.env.DEV ? ['http://localhost:8199/*'] : []),
   ],
   world: 'MAIN',
   registration: 'manifest',
