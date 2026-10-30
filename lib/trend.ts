@@ -61,7 +61,9 @@ export function toDailySeries(
     }
     const prev = sorted[i - 1]!;
     const diff = cur.value - prev.value;
-    out.push({ date: cur.date, value: Math.max(0, diff) / dayGap(prev.date, cur.date), seg: cur.seg });
+    // 累计回落（Cloudflare 修正历史数据）跳过该点：钳成 0 会在曲线上造出假的暴跌
+    if (diff < 0) continue;
+    out.push({ date: cur.date, value: diff / dayGap(prev.date, cur.date), seg: cur.seg });
   }
   return out;
 }

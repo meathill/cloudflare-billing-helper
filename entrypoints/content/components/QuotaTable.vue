@@ -4,9 +4,12 @@ import type { CycleInfo, PageData, ProductRow, Projection } from '../../../lib/t
 import { specOf } from '../../../lib/products';
 import { projectRow } from '../../../lib/math';
 import { compareRows } from '../../../lib/sort';
-import { formatQty, formatMoney } from '../../../lib/format';
+import { formatQty, formatMoney, localDateISO } from '../../../lib/format';
+import { toDailySeries } from '../../../lib/trend';
+import type { TrendPoint } from '../../../lib/trend';
 import { makeT } from '../../../lib/i18n';
 import QuotaBar from './QuotaBar.vue';
+import Sparkline from './Sparkline.vue';
 
 export interface DisplayRow {
   row: ProductRow;
@@ -16,6 +19,8 @@ export interface DisplayRow {
   expandable: boolean;
   /** 耗尽后的迁移建议（来自目录） */
   advice?: string;
+  /** 每日用量（累计类已差分；水位类为每日水平） */
+  daily: TrendPoint[];
 }
 
 const props = defineProps<{
@@ -30,6 +35,7 @@ const t = computed(() => makeT(props.lang));
 
 const rows = computed<DisplayRow[]>(() => {
   const cycle = props.pageData.cycle;
+  const cycleStart = cycle ? localDateISO(cycle.cycleStart) : undefined;
   return props.pageData.products
     .map((row) => {
       const spec = specOf(row);
@@ -42,6 +48,7 @@ const rows = computed<DisplayRow[]>(() => {
         family: spec?.family ?? 'other',
         expandable: spec?.breakdown != null,
         advice: spec?.advice,
+        daily: toDailySeries(series, spec?.kind ?? 'cumulative', cycleStart),
       };
     })
     .sort(compareRows);
@@ -92,6 +99,7 @@ function statusClass(r: DisplayRow): string {
     <div class="head row">
       <div class="col-name">{{ t('product') }}</div>
       <div class="col-quota">{{ t('quota') }}</div>
+      <div class="col-trend">{{ t('trend') }}</div>
       <div class="col-remaining">{{ t('remaining') }}</div>
       <div class="col-avg">{{ t('dailyAvg') }}</div>
       <div class="col-projected">{{ t('projected') }}</div>
@@ -118,6 +126,9 @@ function statusClass(r: DisplayRow): string {
             {{ fmtQty(r.row.totalUsage, r.row.unit) }}
             <template v-if="r.row.included != null"> / {{ fmtQty(r.row.included, r.row.unit) }}</template>
           </div>
+        </div>
+        <div class="col-trend">
+          <Sparkline :points="r.daily" :color="r.color" :unit="r.row.unit" />
         </div>
         <div class="col-remaining" :class="statusClass(r)">{{ remainingText(r) }}</div>
         <div class="col-avg">{{ r.projection.dailyAvg > 0 ? fmtQty(r.projection.dailyAvg, r.row.unit) + '/天' : '—' }}</div>
@@ -151,7 +162,7 @@ function statusClass(r: DisplayRow): string {
 .head.row,
 summary.row {
   display: grid;
-  grid-template-columns: minmax(180px, 1.6fr) minmax(170px, 1.4fr) 80px 90px 110px 84px 92px;
+  grid-template-columns: minmax(170px, 1.5fr) minmax(120px, 1fr) 96px 76px 84px 100px 80px 88px;
   gap: 10px;
   align-items: center;
 }
@@ -216,6 +227,10 @@ summary.row:hover {
   flex-direction: column;
   gap: 3px;
 }
+.col-trend {
+  font-size: 12px;
+  color: var(--cfbh-text-2);
+}
 .quota-text {
   font-size: 11px;
   color: var(--cfbh-text-2);
@@ -255,7 +270,7 @@ summary.row:hover {
 @media (max-width: 1100px) {
   .head.row,
   summary.row {
-    grid-template-columns: minmax(150px, 1.6fr) minmax(140px, 1.4fr) 70px 80px 100px 76px 88px;
+    grid-template-columns: minmax(140px, 1.5fr) minmax(100px, 1fr) 86px 68px 76px 92px 72px 82px;
   }
 }
 </style>

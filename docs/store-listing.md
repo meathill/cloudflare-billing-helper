@@ -51,9 +51,9 @@ See free-tier headroom, when each product will run out, how much it will cost, a
 
 WHAT'S NEW IN 0.2.0
 
-• Daily cost curve — every time you open this page the extension records a snapshot of your usage and cost and turns them into a daily cost curve (total plus your top products). Days that spike or drop sharply are marked with a red dot and called out at the top of the panel.
-• Quota-consumption curve for every product, with hover values and a legend you can switch products off in.
-• Curves restart at every new billing period, so daily values and spike detection are never mixed across periods.
+• A trend line in every product row — each row now carries a compact daily-usage sparkline, built from snapshots the extension stores on your device. Hover it to see the latest day's value.
+• Sharp moves are flagged — a day that doubles or halves is marked with a red dot right on the line.
+• Correct across billing periods — counters reset at each new billing period, and the trend line is computed inside a period only.
 
 WHAT YOU GET
 
@@ -69,8 +69,8 @@ Daily average, projected usage for the cycle and projected overage cost. When a 
 • Per-app breakdown
 Expand a product row to attribute usage to individual Workers, KV namespaces, D1 databases, R2 buckets and Durable Objects, sorted by consumption with share bars.
 
-• Charts that answer "am I on track?"
-Cost composition bars, a daily cost curve (total plus your top products) and a quota-consumption curve, both built from snapshots the extension stores on your device. Days that spike or drop sharply are marked with a red dot and called out at the top of the panel.
+• A trend line for every product
+Each row carries a compact daily-usage sparkline built from snapshots stored on your device, so a product that suddenly doubles or halves is visible at a glance; those days are marked with a red dot. A cost composition bar shows where the money goes.
 
 HOW IT WORKS
 
@@ -108,9 +108,9 @@ Source: https://github.com/meathill/cloudflare-billing-helper
 
 0.2.0 更新内容
 
-• 每日费用曲线——每次打开本页都会记录一条用量与费用快照，换算成每日费用曲线（总费用与费用最高的产品各一条），某天费用暴涨暴跌会标出红点并在面板顶部提示。
-• 每个产品的额度消耗曲线，支持悬停查看当天数值、图例点击开关。
-• 换账期时曲线重新起算，每日值与异动判断不会跨账期混算。
+• 每个产品行内嵌一条每日用量趋势线——基于扩展每天自存的快照，鼠标悬停可看最近一天的具体数值。
+• 暴涨暴跌会被标出来——某天用量翻倍或腰斩，趋势线上直接标红点。
+• 跨账期也对——累计值在换账期时清零，趋势线只在账期内计算。
 
 你会得到
 
@@ -126,8 +126,8 @@ Source: https://github.com/meathill/cloudflare-billing-helper
 • 按应用拆分
 展开产品行即可把用量拆到具体的 Worker、KV namespace、D1 数据库、R2 bucket 与 Durable Object，按消耗降序排列并给占比条。
 
-• 一眼看清趋势
-费用构成条形图、每日费用曲线（总费用与费用最高的产品各一条）与额度消耗曲线，均基于扩展每天自存的本机快照。某天费用突然涨上去或掉下来时，曲线上会标出红点，面板顶部也会直接提示。
+• 每个产品都有趋势线
+每行内嵌一条每日用量迷你折线（基于扩展每天自存的本机快照），哪个产品突然翻倍或腰斩一眼就能看到，这些天会标上红点；费用构成条形图则显示钱花在了哪里。
 
 工作原理
 
@@ -167,14 +167,14 @@ Source: https://github.com/meathill/cloudflare-billing-helper
 ```
 WHAT'S NEW IN 0.2.0
 
-• Daily cost curve
-Every time you open the Billable Usage page, the extension records a snapshot of your usage and cost, then turns them into a daily cost curve — the total plus your top-spending products. Any day that jumps or drops sharply is marked with a red dot and called out at the top of the panel, so a surprise overage no longer slips by.
+• A trend line in every product row
+Each row now carries a compact daily-usage sparkline, built from snapshots the extension records on your device. Hover it to see the latest day's value, so you can tell at a glance whether a product is climbing steadily or suddenly jumping.
 
-• Quota-consumption curve
-The quota chart now shows how each product's free-tier usage moves over time. Hover for the exact value of any day, and click the legend to switch individual products on and off.
+• Sharp moves are flagged
+A day whose usage doubles or halves is marked with a red dot right on the line, so a surprise overage no longer slips by.
 
 • Correct across billing periods
-Curves restart at every new billing period: daily values are computed inside a period only, the first day of a period is averaged from the period start, and periods are never mixed when judging whether a day was unusual.
+Counters reset at every new billing period, and the trend line is computed inside a period only — daily values and sharp-move detection are never mixed across periods.
 ```
 
 ### v0.2.0 更新说明（中文（简体））
@@ -182,21 +182,21 @@ Curves restart at every new billing period: daily values are computed inside a p
 ```
 0.2.0 更新内容
 
-• 每日费用曲线
-每次打开「可计费使用量」时，扩展都会记录一条用量与费用快照，并换算成每日费用曲线：总费用一条，费用最高的产品各一条。某天费用突然涨上去或掉下来时，曲线上会标出红点，面板顶部也会直接提示，意外超额不再被忽略。
+• 每个产品都有行内趋势线
+每个产品行内嵌一条每日用量迷你折线，数据来自扩展在你本机记录的每日快照；鼠标悬停可看最近一天的具体数值，是稳定爬升还是突然跳涨一眼就能分辨。
 
-• 额度消耗曲线
-额度曲线会显示每个产品的免费额度消耗过程，鼠标悬停可看当天数值，图例可点开或关掉某条线。
+• 暴涨暴跌会被标出来
+某天用量翻倍或腰斩，趋势线上直接标红点，意外超额不再被忽略。
 
-• 跨账期也算得对
-换账期时曲线重新起算：每日值只在账期内计算，新账期第一天按周期开始摊算，不同账期之间不会混在一起比较。
+• 跨账期也对
+累计值在换账期时清零，趋势线只在账期内计算，每日值与异动判断不会跨账期混算。
 ```
 
 ### 版本记录
 
 | 版本 | 说明 |
 | --- | --- |
-| 0.2.0 | 首次公开发布：免费额度追踪、耗尽预警、逐产品预估、按应用拆分、每日费用与额度曲线、暴涨暴跌提示 |
+| 0.2.0 | 首次公开发布：免费额度追踪、耗尽预警、逐产品预估、按应用拆分、行内每日用量趋势线 |
 
 > 0.1.x 为发布前的内部迭代版本，未公开发布；对外版本记录自 0.2.0 起。
 
@@ -213,7 +213,7 @@ Add free-quota tracking, exhaustion forecasting, cost projection and per-applica
 **`storage`**
 
 ```
-Stores cached breakdown query results (10 minutes) and daily usage and cost snapshots locally in chrome.storage. The snapshots are kept for all billing periods and are pruned only if they exceed a 4MB size cap. This powers the daily cost and quota trend charts and makes repeated lookups instant. No data leaves the browser.
+Stores cached breakdown query results (10 minutes) and daily usage and cost snapshots locally in chrome.storage. The snapshots are kept for all billing periods and are pruned only if they exceed a 4MB size cap. This powers the per-product daily trend lines and makes repeated lookups instant. No data leaves the browser.
 ```
 
 **Host permission `https://dash.cloudflare.com/*`**

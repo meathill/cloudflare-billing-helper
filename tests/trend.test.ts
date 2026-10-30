@@ -37,9 +37,12 @@ describe('toDailySeries', () => {
     const out = toDailySeries(pts([['2026-10-23', 100], ['2026-10-26', 250]]), 'cumulative');
     expect(out).toEqual([{ date: '2026-10-26', value: 50 }]);
   });
-  it('累计回落按 0 计，不产生负值', () => {
-    const out = toDailySeries(pts([['2026-10-17', 100], ['2026-10-18', 90]]), 'cumulative');
-    expect(out).toEqual([{ date: '2026-10-18', value: 0 }]);
+  it('累计回落（数据修正）跳过该点，不造出假的暴跌', () => {
+    const out = toDailySeries(
+      pts([['2026-10-17', 100], ['2026-10-18', 90], ['2026-10-19', 130]]),
+      'cumulative',
+    );
+    expect(out).toEqual([{ date: '2026-10-19', value: 40 }]);
   });
   it('单点/空序列安全', () => {
     expect(toDailySeries(pts([['2026-10-17', 5]]), 'cumulative')).toEqual([]);
