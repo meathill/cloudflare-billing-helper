@@ -3,7 +3,11 @@ import { computed, onMounted, onUnmounted, ref } from 'vue';
 import type { PageData } from '../../lib/types';
 import { specOf } from '../../lib/products';
 import { parsePage } from '../../lib/parse/dom-parser';
-import { recordSnapshot, getSnapshotSeries } from '../../lib/cache';
+import { recordSnapshot, getSnapshotStore, seriesFromStore, allSeriesFromStore, cycleKeyOf, resolveCycleStartDate } from '../../lib/cache';
+import type { SnapshotValue } from '../../lib/cache';
+import { toDailySeries, sumSeries, mergeSegments, detectAnomaliesBySegment } from '../../lib/trend';
+import type { TrendPoint, Anomaly } from '../../lib/trend';
+import { localDateISO, formatMoney } from '../../lib/format';
 import { detectLang, makeT } from '../../lib/i18n';
 import { runSelfCheck } from '../../lib/api/selfcheck';
 import type { SelfCheckItem } from '../../lib/api/selfcheck';
@@ -11,7 +15,8 @@ import type { CapturedPayload } from '../content';
 import QuotaTable from './components/QuotaTable.vue';
 import type { DisplayRow } from './components/QuotaTable.vue';
 import CostShareBars from './components/CostShareBars.vue';
-import QuotaTrendChart from './components/QuotaTrendChart.vue';
+import TrendChart from './components/TrendChart.vue';
+import type { TrendSeries, TrendAnomaly } from './components/TrendChart.vue';
 import BreakdownList from './components/BreakdownList.vue';
 
 const props = defineProps<{
@@ -29,6 +34,13 @@ const tableRef = ref<InstanceType<typeof QuotaTable> | null>(null);
 const cycleKey = computed(() => pageData.value?.cycle?.cycleStart.toISOString() ?? '');
 
 const seriesByProduct = ref<Record<string, { date: string; value: number }[]>>({});
+
+// 每日费用曲线：tab 与范围（本账期 / 全部历史）
+const trendTab = ref<'cost' | 'quota'>('cost');
+const costRange = ref<'cycle' | 'all'>('cycle');
+const allCostByProduct = ref<Record<string, Record<string, { date: string; value: number }[]>>>({});
+/** 快照里存在的账期（升序） */
+const snapshotCycles = ref<string[]>([]);
 
 let observer: MutationObserver | null = null;
 let parseTimer: number | undefined;
@@ -62,22 +74,31 @@ function scheduleParse(): void {
 
 async function recordAndLoadSeries(parsed: PageData): Promise<void> {
   if (!props.accountId) return;
-  const cycleStartISO = parsed.cycle?.cycleStart.toISOString().slice(0, 10) ?? '';
-  if (!cycleStartISO) return;
-  const todayISO = new Date().toISOString().slice(0, 10);
-  const values: Record<string, number> = {};
+  const cycleStart = parsed.cycle?.cycleStart;
+  const cycleKey = cycleStart ? cycleKeyOf(cycleStart) : '';
+  if (!cycleKey) return;
+  const todayISO = localDateISO();
+  const values: Record<string, SnapshotValue> = {};
   for (const row of parsed.products) {
-    if (Number.isFinite(row.totalUsage)) values[row.id] = row.totalUsage;
+    if (Number.isFinite(row.totalUsage)) {
+      values[row.id] = { u: row.totalUsage, c: Number.isFinite(row.cost) ? row.cost : 0 };
+    }
   }
-  if (Object.keys(values).length > 0) {
-    await recordSnapshot(props.accountId, cycleStartISO, todayISO, values);
-  }
-  // 加载各产品快照序列（用于 gauge 趋势预测与趋势图）
-  const next: Record<string, { date: string; value: number }[]> = {};
+  // 一次读盘写入，同时拿回最新快照供下面派生（避免按产品重复读盘）
+  const store =
+    Object.keys(values).length > 0
+      ? await recordSnapshot(props.accountId, cycleKey, todayISO, values)
+      : await getSnapshotStore(props.accountId);
+  // 各产品序列：用量给 gauge 趋势预测与额度图，费用给每日费用曲线与异动检测
+  const nextUsage: Record<string, { date: string; value: number }[]> = {};
+  const nextAllCost: Record<string, Record<string, { date: string; value: number }[]>> = {};
   for (const row of parsed.products) {
-    next[row.id] = await getSnapshotSeries(props.accountId, cycleStartISO, row.id);
+    nextUsage[row.id] = seriesFromStore(store, cycleKey, row.id, 'u');
+    nextAllCost[row.id] = allSeriesFromStore(store, row.id, 'c');
   }
-  seriesByProduct.value = next;
+  seriesByProduct.value = nextUsage;
+  allCostByProduct.value = nextAllCost;
+  snapshotCycles.value = Object.keys(store).sort();
 }
 
 onMounted(() => {
@@ -115,7 +136,7 @@ const costItems = computed(() => {
     .map((r) => ({ name: r.row.name, cost: r.row.cost, color: r.color }));
 });
 
-const trendSeries = computed(() => {
+const trendSeries = computed<TrendSeries[]>(() => {
   const rows = tableRef.value?.rows ?? [];
   return rows
     .filter((r) => r.row.included != null && r.row.included > 0 && (seriesByProduct.value[r.row.id]?.length ?? 0) >= 2)
@@ -124,10 +145,127 @@ const trendSeries = computed(() => {
       color: r.color,
       points: (seriesByProduct.value[r.row.id] ?? []).map((p) => ({
         date: p.date,
-        pct: r.row.included ? p.value / r.row.included : 0,
+        value: r.row.included ? p.value / r.row.included : 0,
       })),
     }));
 });
+
+/** 当前账期键（页面上解析到的账期） */
+const currentCycleKey = computed(() => {
+  const c = pageData.value?.cycle?.cycleStart;
+  return c ? cycleKeyOf(c) : '';
+});
+
+/** 账期起始日：当前账期用页面解析值（最准），历史账期按分组键反解 */
+function cycleStartOf(cycleKey: string): string | undefined {
+  if (cycleKey === currentCycleKey.value) {
+    const c = pageData.value?.cycle?.cycleStart;
+    if (c) return localDateISO(c);
+  }
+  return resolveCycleStartDate(cycleKey) ?? undefined;
+}
+
+/**
+ * 各产品在各账期的每日费用。
+ * 累计值在账期切换时清零，所以差分只在账期内进行；账期首个快照按
+ * 「周期开始到当天」的天数摊成日均（而不是丢弃）。
+ */
+const dailyCostByCycle = computed<Record<string, Record<string, TrendPoint[]>>>(() => {
+  const out: Record<string, Record<string, TrendPoint[]>> = {};
+  for (const row of pageData.value?.products ?? []) {
+    const byCycle: Record<string, TrendPoint[]> = {};
+    const all = allCostByProduct.value[row.id] ?? {};
+    for (const cycleKey of Object.keys(all).sort()) {
+      const points = toDailySeries(all[cycleKey] ?? [], 'cumulative', cycleStartOf(cycleKey));
+      byCycle[cycleKey] = points.map((p) => ({ ...p, seg: cycleKey }));
+    }
+    out[row.id] = byCycle;
+  }
+  return out;
+});
+
+/** 当前范围下的每日费用（跨账期用 seg 标记，画图时断开，不把两段连成一条线） */
+const dailyCostByProduct = computed<Record<string, TrendPoint[]>>(() => {
+  const out: Record<string, TrendPoint[]> = {};
+  const cycles =
+    costRange.value === 'cycle'
+      ? snapshotCycles.value.filter((k) => k === currentCycleKey.value)
+      : snapshotCycles.value;
+  for (const row of pageData.value?.products ?? []) {
+    const byCycle = dailyCostByCycle.value[row.id] ?? {};
+    out[row.id] = mergeSegments(
+      cycles.filter((k) => byCycle[k]).map((k) => ({ seg: k, points: byCycle[k]! })),
+    );
+  }
+  return out;
+});
+
+const totalCostDaily = computed(() => sumSeries(Object.values(dailyCostByProduct.value)));
+
+/** 费用曲线：总费用（橙）+ 当前费用 Top5 产品分线（至少 2 个点才画得成线） */
+const costChartSeries = computed<TrendSeries[]>(() => {
+  const rows = tableRef.value?.rows ?? [];
+  const top = [...rows]
+    .filter((r) => (dailyCostByProduct.value[r.row.id]?.length ?? 0) >= 2)
+    .sort((a, b) => b.row.cost - a.row.cost)
+    .slice(0, 5)
+    .map((r) => ({ name: r.row.name, color: r.color, points: dailyCostByProduct.value[r.row.id] ?? [] }));
+  const total = totalCostDaily.value;
+  if (total.length < 2) return top;
+  return [{ name: t.value('totalCost'), color: 'var(--cfbh-accent)', points: total }, ...top];
+});
+
+const costChartReady = computed(() => costChartSeries.value.some((s) => s.points.length >= 2));
+
+/** 曲线上的异动红点（基准按账期独立计算，不跨账期混算） */
+const costAnomalyMarks = computed<TrendAnomaly[]>(() => {
+  const out: TrendAnomaly[] = [];
+  costChartSeries.value.forEach((s, index) => {
+    for (const a of detectAnomaliesBySegment(s.points, { minValue: 0.5 })) {
+      out.push({ seriesIndex: index, date: a.date, ratio: a.ratio });
+    }
+  });
+  return out;
+});
+
+interface CostAnomalyChip {
+  name: string;
+  color: string;
+  anomaly: Anomaly;
+}
+
+function deviation(a: Anomaly): number {
+  return Number.isFinite(a.ratio) ? Math.abs(a.ratio - 1) : 99;
+}
+
+/** 顶部异动提示：只提示最新一天有异动的系列（历史异动在曲线上有红点），按波动幅度取前 3 */
+const costAnomalyChips = computed<CostAnomalyChip[]>(() => {
+  const out: CostAnomalyChip[] = [];
+  for (const s of costChartSeries.value) {
+    const list = detectAnomaliesBySegment(s.points, { minValue: 0.5 });
+    const last = list[list.length - 1];
+    if (last && s.points[s.points.length - 1]?.date === last.date) {
+      out.push({ name: s.name, color: s.color, anomaly: last });
+    }
+  }
+  return out.sort((a, b) => deviation(b.anomaly) - deviation(a.anomaly)).slice(0, 3);
+});
+
+function anomalyText(chip: CostAnomalyChip): string {
+  const a = chip.anomaly;
+  const money = formatMoney(a.value);
+  if (!Number.isFinite(a.ratio)) {
+    return lang.value === 'zh' ? `${chip.name}：${money}/天（此前无费用）` : `${chip.name}: ${money}/day (was $0)`;
+  }
+  const pct = Math.round((a.ratio - 1) * 100);
+  const dir = pct > 0 ? `+${pct}%` : `${pct}%`;
+  return lang.value === 'zh'
+    ? `${chip.name}：${money}/天，较近 7 次均值 ${dir}`
+    : `${chip.name}: ${money}/day, ${dir} vs recent avg`;
+}
+
+const moneyFormat = (v: number): string => formatMoney(v);
+const pctFormat = (v: number): string => `${Math.round(v * 100)}%`;
 
 function onExpanded(rowId: string): void {
   expanded.value[rowId] = true;
@@ -233,9 +371,49 @@ async function runCheck(): Promise<void> {
           <CostShareBars :items="costItems" />
         </div>
 
-        <div v-if="trendSeries.length > 0" class="section">
-          <div class="section-title">{{ t('quotaTrend') }}</div>
-          <QuotaTrendChart :series="trendSeries" />
+        <div v-if="costChartReady || trendSeries.length > 0" class="section">
+          <div class="trend-head">
+            <div class="seg">
+              <button class="seg-btn" :class="{ active: trendTab === 'cost' }" @click="trendTab = 'cost'">
+                {{ t('tabCost') }}
+              </button>
+              <button class="seg-btn" :class="{ active: trendTab === 'quota' }" @click="trendTab = 'quota'">
+                {{ t('tabQuota') }}
+              </button>
+            </div>
+            <div v-if="trendTab === 'cost' && costChartReady" class="seg">
+              <button class="seg-btn" :class="{ active: costRange === 'cycle' }" @click="costRange = 'cycle'">
+                {{ t('rangeCycle') }}
+              </button>
+              <button class="seg-btn" :class="{ active: costRange === 'all' }" @click="costRange = 'all'">
+                {{ t('rangeAll') }}
+              </button>
+            </div>
+          </div>
+          <template v-if="trendTab === 'cost'">
+            <div v-if="costAnomalyChips.length > 0" class="anomaly-banner">
+              <span class="anomaly-title">⚡ {{ t('costAnomaly') }}</span>
+              <span
+                v-for="chip in costAnomalyChips"
+                :key="chip.name"
+                class="anomaly-chip"
+                :style="{ borderColor: chip.color }"
+              >
+                {{ anomalyText(chip) }}
+              </span>
+            </div>
+            <TrendChart
+              v-if="costChartReady"
+              :series="costChartSeries"
+              :y-format="moneyFormat"
+              :anomalies="costAnomalyMarks"
+            />
+            <div v-else class="chart-empty">{{ t('costTrendEmpty') }}</div>
+          </template>
+          <template v-else>
+            <TrendChart v-if="trendSeries.length > 0" :series="trendSeries" :y-format="pctFormat" />
+            <div v-else class="chart-empty">{{ t('trendEmpty') }}</div>
+          </template>
         </div>
 
         <div v-if="checkItems.length > 0" class="section">
@@ -397,6 +575,61 @@ async function runCheck(): Promise<void> {
   margin-bottom: 8px;
   text-transform: uppercase;
   letter-spacing: 0.03em;
+}
+.trend-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.seg {
+  display: inline-flex;
+  border: 1px solid var(--cfbh-border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.seg-btn {
+  border: none;
+  background: var(--cfbh-bg);
+  color: var(--cfbh-text-2);
+  font-size: 11px;
+  padding: 3px 10px;
+  cursor: pointer;
+}
+.seg-btn + .seg-btn {
+  border-left: 1px solid var(--cfbh-border);
+}
+.seg-btn.active {
+  background: var(--cfbh-bg-2);
+  color: var(--cfbh-text);
+  font-weight: 600;
+}
+.anomaly-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 12px;
+}
+.anomaly-title {
+  color: var(--cfbh-warn);
+  font-weight: 600;
+}
+.anomaly-chip {
+  border: 1px solid var(--cfbh-border);
+  border-radius: 6px;
+  padding: 2px 8px;
+  background: color-mix(in srgb, var(--cfbh-warn) 7%, transparent);
+  font-variant-numeric: tabular-nums;
+}
+.chart-empty {
+  color: var(--cfbh-text-2);
+  font-size: 12px;
+  padding: 14px 0;
+  text-align: center;
 }
 .check-item {
   display: flex;

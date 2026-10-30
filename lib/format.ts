@@ -1,5 +1,12 @@
 /** 数量与文案格式化。 */
 
+/** 本地时区的 ISO 日期（YYYY-MM-DD）。toISOString 是 UTC，凌晨 0–8 点会错位一天。 */
+export function localDateISO(d: Date = new Date()): string {
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${m}-${day}`;
+}
+
 export function compactNumber(n: number): string {
   if (!Number.isFinite(n)) return '—';
   const abs = Math.abs(n);
