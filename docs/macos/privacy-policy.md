@@ -1,10 +1,10 @@
-# Privacy Policy — Cloudflare Billing Helper for macOS
+# Privacy Policy — Billing Helper for Cloudflare®
 
 Effective date: November 5, 2026  
 Developer: 肉山 (Meathill)  
 Contact: meathill@gmail.com
 
-Cloudflare Billing Helper for macOS lets you connect Cloudflare accounts to view billing estimates. This policy describes the macOS app.
+Billing Helper for Cloudflare® lets you connect Cloudflare accounts to view billing estimates. This policy describes the macOS app.
 
 ## Information the app uses
 
@@ -30,13 +30,13 @@ For questions about this policy or the macOS app, contact 肉山 (Meathill) at m
 
 ---
 
-# 隐私政策 — Cloudflare Billing Helper for macOS
+# 隐私政策 — Billing Helper for Cloudflare®
 
 生效日期：2026 年 11 月 5 日  
 开发者：肉山（Meathill）  
 联系方式：meathill@gmail.com
 
-Cloudflare Billing Helper for macOS 允许你连接 Cloudflare 账户以查看账单估算。本政策适用于 macOS 应用。
+Billing Helper for Cloudflare® 允许你连接 Cloudflare 账户以查看账单估算。本政策适用于 macOS 应用。
 
 ## 应用使用的信息
 
