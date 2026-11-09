@@ -1,0 +1,7 @@
+# Billing specification
+
+`catalog.json` is the shared 29-row Workers Paid product catalog. Prices are USD per unit and may be absent; they are estimates, not a substitute for an account's rates.
+
+`fixtures/billing.json` uses UTC half-open intervals `[start, end)`. A subscription's fixed cost is its service-period price multiplied by its overlap with the billing cycle divided by the service-period duration. Deduplicate subscriptions by ID, currency and service period, and usage records by currency and ID. Identical duplicates count once; conflicting duplicates retain the first known subtotal and mark the result incomplete. Include usage only if its entire interval falls in the cycle; an overlapping interval crossing a cycle boundary makes the result incomplete. Ignore intervals wholly outside the cycle. Sum currencies independently without conversion. A missing amount outside the cycle does not affect completeness. Missing or invalid amounts in the cycle mark the result incomplete; known amounts remain in the subtotal. Amounts in the fixtures are decimal strings or null; compare calculated amounts with tolerance `1e-8`.
+
+When `sourceAsOf` is supplied, forecast is fixed cost plus usage cost multiplied by cycle duration divided by elapsed time through that source date, clamped to the cycle. With no positive elapsed time or incomplete data for that currency, its forecast is unavailable. A global source failure makes every currency incomplete. The date denotes source coverage, not fetch time.

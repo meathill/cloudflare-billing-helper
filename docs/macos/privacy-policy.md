@@ -1,10 +1,10 @@
-# Privacy Policy — Cloudflare Billing Helper for macOS
+# Privacy Policy — Billing Helper for Cloudflare®
 
 Effective date: November 5, 2026  
 Developer: 肉山 (Meathill)  
 Contact: meathill@gmail.com
 
-Cloudflare Billing Helper for macOS lets you connect Cloudflare accounts to view billing estimates. This policy describes the macOS app.
+Billing Helper for Cloudflare® lets you connect Cloudflare accounts to view billing estimates. This policy describes the macOS app.
 
 ## Information the app uses
 
@@ -22,7 +22,11 @@ When you remove an account successfully, the app deletes that account's stored t
 
 ## External links
 
-If you choose an external link, such as the voluntary Buy Me a Coffee support link, your browser connects to that service. The app does not collect payment information or unlock features in exchange for support. The external service has its own privacy practices.
+If you choose an external link, your browser connects to that service. The app does not collect information from those websites. The website-distributed edition offers optional external support, processed by the linked service under its own privacy terms. The app does not receive payment card details.
+
+## In-App Purchase
+
+The App Store edition offers an optional one-time tip through the App Store. Apple processes the payment; the app does not receive payment card details. The tip does not unlock features. StoreKit verifies the transaction on your device, and the app does not send transaction details to the developer. Apple services have their own privacy practices.
 
 ## Contact
 
@@ -30,13 +34,13 @@ For questions about this policy or the macOS app, contact 肉山 (Meathill) at m
 
 ---
 
-# 隐私政策 — Cloudflare Billing Helper for macOS
+# 隐私政策 — Billing Helper for Cloudflare®
 
 生效日期：2026 年 11 月 5 日  
 开发者：肉山（Meathill）  
 联系方式：meathill@gmail.com
 
-Cloudflare Billing Helper for macOS 允许你连接 Cloudflare 账户以查看账单估算。本政策适用于 macOS 应用。
+Billing Helper for Cloudflare® 允许你连接 Cloudflare 账户以查看账单估算。本政策适用于 macOS 应用。
 
 ## 应用使用的信息
 
@@ -54,7 +58,11 @@ Cloudflare Billing Helper for macOS 允许你连接 Cloudflare 账户以查看�
 
 ## 外部链接
 
-如果你选择自愿支持等外部链接，浏览器会连接相应服务。应用不收集支付信息，也不会因支持而解锁功能；外部服务适用其自身隐私规则。
+如果你选择外部链接，浏览器会连接相应服务。应用不会从这些网站收集信息。官网下载版提供可选的外部支持，由链接指向的服务处理并适用其自身隐私规则；本应用不会收到银行卡信息。
+
+## App 内购买项目
+
+App Store 版提供可选的一次性 App Store 支持。付款由 Apple 处理，本应用不会收到银行卡信息。支持不会解锁功能。StoreKit 在你的设备上验证交易，应用不会向开发者发送交易详情。Apple 服务适用其自身隐私规则。
 
 ## 联系方式
 

@@ -5,3 +5,8 @@ node_modules
 stats.html
 .DS_Store
 *.log
+.pnpm-store/
+.build/
+DerivedData/
+*.xcarchive/
+apps/macos/build/

@@ -1,14 +1,14 @@
 # Chrome Web Store Listing（v0.2.0）
 
 > 本文件是提交 Chrome Web Store 时可直接复制粘贴的完整文案与表单答案。
-> 图形资源见 `docs/store/` 与 `docs/screenshots/`，安装包见 `.output/cloudflare-billing-helper-0.2.0-chrome.zip`。
+> 图形资源见 `docs/store/` 与 `docs/screenshots/`，安装包见 `apps/extension/.output/cloudflare-billing-helperextension-0.2.0-chrome.zip`。
 > 本次更新的说明见第四节；Chrome Web Store 后台没有独立的 release notes 字段（商店页只显示 "Updated on <日期>" 与版本号），更新说明需贴在描述开头，文案已同步合并进第三节。
 
 ## 〇、两套多语言机制（重要）
 
 | 机制 | 位置 | 作用 |
 | --- | --- | --- |
-| **Manifest `_locales`** | `public/_locales/{en,zh_CN}/messages.json`，manifest 用 `__MSG_extName__` / `__MSG_extDescription__`，`default_locale: en` | 决定 **Chrome 扩展管理页 / 工具栏提示** 里显示的名称与描述，随浏览器界面语言自动切换 |
+| **Manifest `_locales`** | `apps/extension/public/_locales/{en,zh_CN}/messages.json`，manifest 用 `__MSG_extName__` / `__MSG_extDescription__`，`default_locale: en` | 决定 **Chrome 扩展管理页 / 工具栏提示** 里显示的名称与描述，随浏览器界面语言自动切换 |
 | **商店 Listing 语言** | Chrome Web Store Developer Dashboard → Store listing → Add language | 决定 **商店页面** 上的名称、简介、详细描述、截图，需在后台手动添加中文（简体）并分别填写 |
 
 两者互不影响：只配 manifest，商店页面仍只有默认语言；只加商店语言，浏览器 UI 里的名称仍是默认语言。本次已同时准备。
@@ -251,7 +251,7 @@ No. All code is bundled in the extension package; nothing is loaded or evaluated
 
 ## 七、提交步骤
 
-1. Chrome Web Store Developer Dashboard → New item → 上传 `.output/cloudflare-billing-helper-0.2.0-chrome.zip`；
+1. Chrome Web Store Developer Dashboard → New item → 上传 `apps/extension/.output/cloudflare-billing-helperextension-0.2.0-chrome.zip`；
 2. Store listing（English）：粘贴上文英文名称 / 简介 / 详细描述，**描述开头先贴第四节英文更新说明**；
 3. Store listing → **Add language → 中文（简体）**：粘贴中文名称 / 简介 / 详细描述（描述开头贴第四节中文更新说明；截图与图片可与默认语言共用）；
 4. 上传图标、截图与宣传图；填写 Website / Support / Privacy policy URL；
@@ -259,4 +259,4 @@ No. All code is bundled in the extension package; nothing is loaded or evaluated
 6. Distribution：Public / Free / All regions；
 7. 提交审核（新账号首次提交通常需要 1–3 个工作日）；审核通过后再点 Publish 发布。
 
-> 发下一版时：先 `pnpm build`（自动 +1 patch）→ `pnpm zip` → 在第四节追加新版本说明并同步到描述开头 → 上传新 zip 提交审核。
+> 发下一版时：先 `pnpm version:extension` → `pnpm build` → `pnpm zip` → 在第四节追加新版本说明并同步到描述开头 → 上传新 zip 提交审核。

@@ -1,0 +1,366 @@
+[
+  {
+    "key": "workers-cpu-ms",
+    "name": "Workers CPU ms",
+    "unit": "ms",
+    "included": 30000000,
+    "kind": "cumulative",
+    "family": "workers",
+    "color": "#2f7d3b",
+    "breakdown": {
+      "family": "workers",
+      "metric": "cpuTime"
+    },
+    "unitPrice": 2e-8
+  },
+  {
+    "key": "kv-storage",
+    "name": "KV Storage",
+    "aliases": [
+      "kv storage (gb"
+    ],
+    "unit": "GB-months",
+    "included": 1,
+    "kind": "gauge",
+    "family": "kv",
+    "color": "#9333ea",
+    "breakdown": {
+      "family": "kv",
+      "metric": "storage"
+    },
+    "advice": "存储型负载可考虑迁移到 R2（免 Class A/B 的 get/put 更便宜，10GB 免费额度）",
+    "unitPrice": 0.5
+  },
+  {
+    "key": "worker-build-minutes",
+    "name": "Worker Build Minutes",
+    "unit": "minutes",
+    "included": 6000,
+    "kind": "cumulative",
+    "family": "workers",
+    "color": "#22a06b",
+    "unitPrice": 0.005
+  },
+  {
+    "key": "email-service-sent",
+    "name": "Email Service - Emails Sent",
+    "unit": "emails",
+    "included": 3000,
+    "kind": "cumulative",
+    "family": "other",
+    "color": "#5fd4b0",
+    "unitPrice": 0.00035
+  },
+  {
+    "key": "kv-delete-operations",
+    "name": "KV Delete Operations",
+    "unit": "ops",
+    "included": 1000000,
+    "kind": "cumulative",
+    "family": "kv",
+    "color": "#17b8a6",
+    "breakdown": {
+      "family": "kv",
+      "metric": "delete"
+    },
+    "unitPrice": 0.000005
+  },
+  {
+    "key": "kv-list-operations",
+    "name": "KV List Operations",
+    "unit": "ops",
+    "included": 1000000,
+    "kind": "cumulative",
+    "family": "kv",
+    "color": "#c026d3",
+    "breakdown": {
+      "family": "kv",
+      "metric": "list"
+    },
+    "unitPrice": 0.000005
+  },
+  {
+    "key": "do-compute-requests",
+    "name": "Durable Objects Compute Requests",
+    "unit": "requests",
+    "included": 1000000,
+    "kind": "cumulative",
+    "family": "do",
+    "color": "#6b21a8",
+    "breakdown": {
+      "family": "do",
+      "metric": "requests"
+    },
+    "unitPrice": 1.5e-7
+  },
+  {
+    "key": "d1-storage",
+    "name": "D1 - Storage GB-mo",
+    "aliases": [
+      "d1 - storage"
+    ],
+    "unit": "GB-months",
+    "included": 5,
+    "kind": "gauge",
+    "family": "d1",
+    "color": "#84cc16",
+    "breakdown": {
+      "family": "d1",
+      "metric": "storage"
+    },
+    "unitPrice": 0.75
+  },
+  {
+    "key": "do-sql-storage",
+    "name": "Durable Objects SQL Storage",
+    "unit": "GB-months",
+    "included": 5,
+    "kind": "gauge",
+    "family": "do",
+    "color": "#f472b6",
+    "breakdown": {
+      "family": "do",
+      "metric": "sqlStorage"
+    },
+    "unitPrice": 0.2
+  },
+  {
+    "key": "queues-standard-operations",
+    "name": "Queues - Standard operations",
+    "unit": "ops",
+    "included": 1000000,
+    "kind": "cumulative",
+    "family": "other",
+    "color": "#e5484d",
+    "unitPrice": 4.0000000000000003e-7
+  },
+  {
+    "key": "do-storage-rows-read",
+    "name": "Durable Objects Storage Rows Read",
+    "unit": "rows",
+    "included": 25000000000,
+    "kind": "cumulative",
+    "family": "do",
+    "color": "#4271ae",
+    "breakdown": {
+      "family": "do",
+      "metric": "rowsRead"
+    },
+    "unitPrice": 1e-9
+  },
+  {
+    "key": "kv-write-operations",
+    "name": "KV Write Operations",
+    "unit": "ops",
+    "included": 1000000,
+    "kind": "cumulative",
+    "family": "kv",
+    "color": "#e05d38",
+    "breakdown": {
+      "family": "kv",
+      "metric": "write"
+    },
+    "unitPrice": 0.000005
+  },
+  {
+    "key": "images-transformed",
+    "name": "Images Transformed",
+    "unit": "images",
+    "included": 5000,
+    "kind": "cumulative",
+    "family": "other",
+    "color": "#3b82f6",
+    "unitPrice": 0.0005
+  },
+  {
+    "key": "kv-read-operations",
+    "name": "KV Read Operations",
+    "unit": "ops",
+    "included": 10000000,
+    "kind": "cumulative",
+    "family": "kv",
+    "color": "#5c8d29",
+    "breakdown": {
+      "family": "kv",
+      "metric": "read"
+    },
+    "unitPrice": 5e-7
+  },
+  {
+    "key": "d1-rows-written",
+    "name": "D1 - Rows Written",
+    "unit": "rows",
+    "included": 50000000,
+    "kind": "cumulative",
+    "family": "d1",
+    "color": "#ef4444",
+    "breakdown": {
+      "family": "d1",
+      "metric": "rowsWritten"
+    },
+    "unitPrice": 0.000001
+  },
+  {
+    "key": "d1-rows-read",
+    "name": "D1 - Rows Read",
+    "unit": "rows",
+    "included": 25000000000,
+    "kind": "cumulative",
+    "family": "d1",
+    "color": "#06b6d4",
+    "breakdown": {
+      "family": "d1",
+      "metric": "rowsRead"
+    },
+    "unitPrice": 1e-9
+  },
+  {
+    "key": "observability-logs",
+    "name": "Observability - Logs",
+    "unit": "events",
+    "included": 20000000,
+    "kind": "cumulative",
+    "family": "other",
+    "color": "#3d5af1"
+  },
+  {
+    "key": "r2-class-b-operations",
+    "name": "R2 Storage Class B Operations",
+    "unit": "ops",
+    "included": 10000000,
+    "kind": "cumulative",
+    "family": "r2",
+    "color": "#a08a00",
+    "breakdown": {
+      "family": "r2",
+      "metric": "classB"
+    },
+    "unitPrice": 3.6e-7
+  },
+  {
+    "key": "do-storage-rows-written",
+    "name": "Durable Objects Storage Rows Written",
+    "unit": "rows",
+    "included": 50000000,
+    "kind": "cumulative",
+    "family": "do",
+    "color": "#eab308",
+    "breakdown": {
+      "family": "do",
+      "metric": "rowsWritten"
+    },
+    "unitPrice": 0.000001
+  },
+  {
+    "key": "do-compute-duration",
+    "name": "Durable Objects Compute Duration",
+    "unit": "GB-s",
+    "included": 400000,
+    "kind": "cumulative",
+    "family": "do",
+    "color": "#e8d44d",
+    "breakdown": {
+      "family": "do",
+      "metric": "duration"
+    },
+    "unitPrice": 0.0000125
+  },
+  {
+    "key": "r2-class-a-operations",
+    "name": "R2 Storage Class A Operations",
+    "unit": "ops",
+    "included": 1000000,
+    "kind": "cumulative",
+    "family": "r2",
+    "color": "#2fa84f",
+    "breakdown": {
+      "family": "r2",
+      "metric": "classA"
+    },
+    "unitPrice": 0.0000045
+  },
+  {
+    "key": "workers-standard-requests",
+    "name": "Workers Standard Requests",
+    "unit": "requests",
+    "included": 10000000,
+    "kind": "cumulative",
+    "family": "workers",
+    "color": "#c05656",
+    "breakdown": {
+      "family": "workers",
+      "metric": "requests"
+    },
+    "unitPrice": 3e-7
+  },
+  {
+    "key": "r2-data-storage",
+    "name": "R2 Data Storage",
+    "unit": "GB-months",
+    "included": 10,
+    "kind": "gauge",
+    "family": "r2",
+    "color": "#4f46e5",
+    "breakdown": {
+      "family": "r2",
+      "metric": "storage"
+    },
+    "unitPrice": 0.015
+  },
+  {
+    "key": "browser-run-concurrent",
+    "name": "Browser Run - Average Concurrent Browsers",
+    "unit": "browsers",
+    "included": 10,
+    "kind": "gauge",
+    "family": "other",
+    "color": "#a78bfa"
+  },
+  {
+    "key": "browser-run-hours",
+    "name": "Browser Run - Browser Hours",
+    "unit": "hours",
+    "included": 10,
+    "kind": "cumulative",
+    "family": "other",
+    "color": "#f97316"
+  },
+  {
+    "key": "vectorize-stored-dimensions",
+    "name": "Vectorize - Stored Dimensions",
+    "unit": "dimension-months",
+    "included": 10000000,
+    "kind": "gauge",
+    "family": "other",
+    "color": "#6b7f1f"
+  },
+  {
+    "key": "vectorize-queried-dimensions",
+    "name": "Vectorize - Queried Dimensions",
+    "unit": "dimensions",
+    "included": 50000000,
+    "kind": "cumulative",
+    "family": "other",
+    "color": "#ec4899"
+  },
+  {
+    "key": "regular-twitch-neurons",
+    "name": "Regular Twitch Neurons",
+    "aliases": [
+      "regular twitch neurons (rtn)"
+    ],
+    "unit": "count",
+    "kind": "cumulative",
+    "family": "other",
+    "color": "#14b8a6"
+  },
+  {
+    "key": "dynamic-workers",
+    "name": "Dynamic Workers",
+    "unit": "workers",
+    "included": 1000,
+    "kind": "gauge",
+    "family": "other",
+    "color": "#1e3a5f"
+  }
+]

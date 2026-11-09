@@ -1,0 +1,441 @@
+{
+  "cases": [
+    {
+      "name": "prorated subscription and usage",
+      "cycle": {
+        "start": "2026-01-01T00:00:00Z",
+        "end": "2026-02-01T00:00:00Z"
+      },
+      "subscriptions": [
+        {
+          "id": "workers",
+          "currency": "USD",
+          "price": "31",
+          "periodStart": "2026-01-01T00:00:00Z",
+          "periodEnd": "2026-02-01T00:00:00Z"
+        },
+        {
+          "id": "partial",
+          "currency": "USD",
+          "price": "20",
+          "periodStart": "2025-12-22T00:00:00Z",
+          "periodEnd": "2026-01-11T00:00:00Z"
+        }
+      ],
+      "usage": [
+        {
+          "id": "u1",
+          "currency": "USD",
+          "cost": "2.5",
+          "periodStart": "2026-01-01T00:00:00Z",
+          "periodEnd": "2026-01-02T00:00:00Z"
+        }
+      ],
+      "expected": {
+        "totals": [
+          {
+            "currency": "USD",
+            "fixedCost": "41",
+            "usageCost": "2.5"
+          }
+        ],
+        "incomplete": false
+      }
+    },
+    {
+      "name": "duplicates, boundaries and currencies",
+      "cycle": {
+        "start": "2026-01-01T00:00:00Z",
+        "end": "2026-02-01T00:00:00Z"
+      },
+      "subscriptions": [
+        {
+          "id": "a",
+          "currency": "EUR",
+          "price": "10",
+          "periodStart": "2026-01-01T00:00:00Z",
+          "periodEnd": "2026-02-01T00:00:00Z"
+        },
+        {
+          "id": "a",
+          "currency": "EUR",
+          "price": "10",
+          "periodStart": "2026-01-01T00:00:00Z",
+          "periodEnd": "2026-02-01T00:00:00Z"
+        },
+        {
+          "id": "outside",
+          "currency": "USD",
+          "price": "4",
+          "periodStart": "2026-02-01T00:00:00Z",
+          "periodEnd": "2026-03-01T00:00:00Z"
+        }
+      ],
+      "usage": [
+        {
+          "id": "u",
+          "currency": "USD",
+          "cost": "3",
+          "periodStart": "2026-01-02T00:00:00Z",
+          "periodEnd": "2026-01-03T00:00:00Z"
+        },
+        {
+          "id": "u",
+          "currency": "USD",
+          "cost": "3",
+          "periodStart": "2026-01-02T00:00:00Z",
+          "periodEnd": "2026-01-03T00:00:00Z"
+        },
+        {
+          "id": "cross",
+          "currency": "USD",
+          "cost": "9",
+          "periodStart": "2025-12-31T00:00:00Z",
+          "periodEnd": "2026-01-02T00:00:00Z"
+        }
+      ],
+      "expected": {
+        "totals": [
+          {
+            "currency": "EUR",
+            "fixedCost": "10",
+            "usageCost": "0"
+          },
+          {
+            "currency": "USD",
+            "fixedCost": "0",
+            "usageCost": "3"
+          }
+        ],
+        "incomplete": true
+      }
+    },
+    {
+      "name": "missing amounts and distinct currencies",
+      "cycle": {
+        "start": "2026-01-01T00:00:00Z",
+        "end": "2026-02-01T00:00:00Z"
+      },
+      "subscriptions": [
+        {
+          "id": "same",
+          "currency": "USD",
+          "price": "10",
+          "periodStart": "2026-01-01T00:00:00Z",
+          "periodEnd": "2026-02-01T00:00:00Z"
+        },
+        {
+          "id": "same",
+          "currency": "EUR",
+          "price": "5",
+          "periodStart": "2026-01-01T00:00:00Z",
+          "periodEnd": "2026-02-01T00:00:00Z"
+        },
+        {
+          "id": "missing",
+          "currency": "USD",
+          "price": null,
+          "periodStart": "2026-01-01T00:00:00Z",
+          "periodEnd": "2026-02-01T00:00:00Z"
+        }
+      ],
+      "usage": [
+        {
+          "id": "known",
+          "currency": "USD",
+          "cost": "2",
+          "periodStart": "2026-01-01T00:00:00Z",
+          "periodEnd": "2026-01-02T00:00:00Z"
+        },
+        {
+          "id": "missing",
+          "currency": "USD",
+          "cost": null,
+          "periodStart": "2026-01-02T00:00:00Z",
+          "periodEnd": "2026-01-03T00:00:00Z"
+        }
+      ],
+      "expected": {
+        "totals": [
+          {
+            "currency": "EUR",
+            "fixedCost": "5",
+            "usageCost": "0"
+          },
+          {
+            "currency": "USD",
+            "fixedCost": "10",
+            "usageCost": "2"
+          }
+        ],
+        "incomplete": true
+      }
+    },
+    {
+      "name": "annual subscription leap February and source date forecast",
+      "cycle": {
+        "start": "2024-02-01T00:00:00Z",
+        "end": "2024-03-01T00:00:00Z"
+      },
+      "sourceAsOf": "2024-02-15T00:00:00Z",
+      "subscriptions": [
+        {
+          "id": "annual",
+          "currency": "USD",
+          "price": "366",
+          "periodStart": "2024-01-01T00:00:00Z",
+          "periodEnd": "2025-01-01T00:00:00Z"
+        }
+      ],
+      "usage": [
+        {
+          "id": "u",
+          "currency": "USD",
+          "cost": "4",
+          "periodStart": "2024-02-01T00:00:00Z",
+          "periodEnd": "2024-02-15T00:00:00Z"
+        }
+      ],
+      "expected": {
+        "totals": [
+          {
+            "currency": "USD",
+            "fixedCost": "29",
+            "usageCost": "4",
+            "forecastCost": "37.285714285714286"
+          }
+        ],
+        "incomplete": false
+      }
+    },
+    {
+      "name": "source date at cycle start prevents forecast",
+      "cycle": {
+        "start": "2024-02-01T00:00:00Z",
+        "end": "2024-03-01T00:00:00Z"
+      },
+      "sourceAsOf": "2024-02-01T00:00:00Z",
+      "subscriptions": [
+        {
+          "id": "annual",
+          "currency": "USD",
+          "price": "366",
+          "periodStart": "2024-01-01T00:00:00Z",
+          "periodEnd": "2025-01-01T00:00:00Z"
+        }
+      ],
+      "usage": [],
+      "expected": {
+        "totals": [
+          {
+            "currency": "USD",
+            "fixedCost": "29",
+            "usageCost": "0",
+            "forecastCost": null
+          }
+        ],
+        "incomplete": false
+      }
+    },
+    {
+      "name": "conflicting duplicates are incomplete",
+      "cycle": {
+        "start": "2024-02-01T00:00:00Z",
+        "end": "2024-03-01T00:00:00Z"
+      },
+      "sourceAsOf": "2024-02-15T00:00:00Z",
+      "subscriptions": [
+        {
+          "id": "annual",
+          "currency": "USD",
+          "price": "366",
+          "periodStart": "2024-01-01T00:00:00Z",
+          "periodEnd": "2025-01-01T00:00:00Z"
+        },
+        {
+          "id": "annual",
+          "currency": "USD",
+          "price": "732",
+          "periodStart": "2024-01-01T00:00:00Z",
+          "periodEnd": "2025-01-01T00:00:00Z"
+        }
+      ],
+      "usage": [
+        {
+          "id": "u",
+          "currency": "USD",
+          "cost": "4",
+          "periodStart": "2024-02-01T00:00:00Z",
+          "periodEnd": "2024-02-15T00:00:00Z"
+        },
+        {
+          "id": "u",
+          "currency": "USD",
+          "cost": "9",
+          "periodStart": "2024-02-01T00:00:00Z",
+          "periodEnd": "2024-02-15T00:00:00Z"
+        }
+      ],
+      "expected": {
+        "totals": [
+          {
+            "currency": "USD",
+            "fixedCost": "29",
+            "usageCost": "4",
+            "forecastCost": null
+          }
+        ],
+        "incomplete": true
+      }
+    },
+    {
+      "name": "missing price outside cycle is ignored",
+      "cycle": {
+        "start": "2024-02-01T00:00:00Z",
+        "end": "2024-03-01T00:00:00Z"
+      },
+      "subscriptions": [
+        {
+          "id": "annual",
+          "currency": "USD",
+          "price": "366",
+          "periodStart": "2024-01-01T00:00:00Z",
+          "periodEnd": "2025-01-01T00:00:00Z"
+        },
+        {
+          "id": "outside",
+          "currency": "USD",
+          "price": null,
+          "periodStart": "2024-03-01T00:00:00Z",
+          "periodEnd": "2024-04-01T00:00:00Z"
+        }
+      ],
+      "usage": [],
+      "expected": {
+        "totals": [
+          {
+            "currency": "USD",
+            "fixedCost": "29",
+            "usageCost": "0"
+          }
+        ],
+        "incomplete": false
+      }
+    },
+    {
+      "name": "source date after cycle clamps forecast",
+      "cycle": {
+        "start": "2024-02-01T00:00:00Z",
+        "end": "2024-03-01T00:00:00Z"
+      },
+      "sourceAsOf": "2024-04-01T00:00:00Z",
+      "subscriptions": [
+        {
+          "id": "annual",
+          "currency": "USD",
+          "price": "366",
+          "periodStart": "2024-01-01T00:00:00Z",
+          "periodEnd": "2025-01-01T00:00:00Z"
+        }
+      ],
+      "usage": [
+        {
+          "id": "u",
+          "currency": "USD",
+          "cost": "4",
+          "periodStart": "2024-02-01T00:00:00Z",
+          "periodEnd": "2024-02-15T00:00:00Z"
+        }
+      ],
+      "expected": {
+        "totals": [
+          {
+            "currency": "USD",
+            "fixedCost": "29",
+            "usageCost": "4",
+            "forecastCost": "33"
+          }
+        ],
+        "incomplete": false
+      }
+    },
+    {
+      "name": "partial currency does not suppress known currency forecast",
+      "cycle": {
+        "start": "2024-02-01T00:00:00Z",
+        "end": "2024-03-01T00:00:00Z"
+      },
+      "sourceAsOf": "2024-02-15T00:00:00Z",
+      "subscriptions": [
+        {
+          "id": "a",
+          "currency": "EUR",
+          "price": "29",
+          "periodStart": "2024-02-01T00:00:00Z",
+          "periodEnd": "2024-03-01T00:00:00Z"
+        },
+        {
+          "id": "b",
+          "currency": "USD",
+          "price": "29",
+          "periodStart": "2024-02-01T00:00:00Z",
+          "periodEnd": "2024-03-01T00:00:00Z"
+        },
+        {
+          "id": "missing",
+          "currency": "USD",
+          "price": null,
+          "periodStart": "2024-02-01T00:00:00Z",
+          "periodEnd": "2024-03-01T00:00:00Z"
+        }
+      ],
+      "usage": [],
+      "expected": {
+        "totals": [
+          {
+            "currency": "EUR",
+            "fixedCost": "29",
+            "usageCost": "0",
+            "forecastCost": "29"
+          },
+          {
+            "currency": "USD",
+            "fixedCost": "29",
+            "usageCost": "0",
+            "forecastCost": null
+          }
+        ],
+        "incomplete": true
+      }
+    },
+    {
+      "name": "all amounts missing retain currency and mark incomplete",
+      "cycle": {
+        "start": "2024-02-01T00:00:00Z",
+        "end": "2024-03-01T00:00:00Z"
+      },
+      "sourceAsOf": "2024-02-15T00:00:00Z",
+      "subscriptions": [
+        {
+          "id": "missing",
+          "currency": "USD",
+          "price": null,
+          "periodStart": "2024-02-01T00:00:00Z",
+          "periodEnd": "2024-03-01T00:00:00Z"
+        }
+      ],
+      "usage": [],
+      "expected": {
+        "totals": [
+          {
+            "currency": "USD",
+            "fixedCost": "0",
+            "usageCost": "0",
+            "forecastCost": null
+          }
+        ],
+        "incomplete": true
+      }
+    }
+  ]
+}

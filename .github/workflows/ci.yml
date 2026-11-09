@@ -1,0 +1,26 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  extension:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:extension
+      - run: pnpm compile
+      - run: pnpm build:extension
+      - run: pnpm zip
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: swift test --package-path apps/macos/Packages/BillingCore
+      - run: swift test --package-path apps/macos
+      - run: bash apps/macos/scripts/build.sh

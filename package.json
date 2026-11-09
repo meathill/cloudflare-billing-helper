@@ -1,30 +1,21 @@
 {
   "name": "cloudflare-billing-helper",
-  "description": "Cloudflare 可计费使用量页增强：免费额度追踪、耗尽预警、用量预估与按应用拆分",
   "private": true,
-  "version": "0.2.0",
-  "type": "module",
   "scripts": {
-    "dev": "wxt",
-    "build": "node scripts/bump-version.mjs && wxt build",
-    "build:only": "wxt build",
-    "zip": "wxt zip",
-    "compile": "vue-tsc --noEmit",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "postinstall": "wxt prepare"
-  },
-  "dependencies": {
-    "vue": "^3.5.0"
-  },
-  "devDependencies": {
-    "@types/chrome": "^0.3.6",
-    "@wxt-dev/module-vue": "^1.0.3",
-    "jsdom": "^26.0.0",
-    "playwright": "^1.64.1",
-    "typescript": "^5.7.0",
-    "vitest": "^3.0.0",
-    "vue-tsc": "^2.2.0",
-    "wxt": "^0.20.0"
+    "dev": "pnpm --filter @cloudflare-billing-helper/extension dev",
+    "build": "pnpm build:extension",
+    "build:extension": "pnpm --filter @cloudflare-billing-helper/extension build && node apps/extension/scripts/sync-legacy-build.mjs",
+    "build:macos": "bash apps/macos/scripts/build.sh",
+    "archive:macos:direct": "bash apps/macos/scripts/archive-direct.sh",
+    "package:macos:direct": "bash apps/macos/scripts/package-direct.sh",
+    "zip": "pnpm --filter @cloudflare-billing-helper/extension zip",
+    "version:extension": "pnpm --filter @cloudflare-billing-helper/extension version:patch",
+    "compile": "pnpm --filter @cloudflare-billing-helper/extension compile",
+    "test": "pnpm test:extension && pnpm test:macos",
+    "test:extension": "pnpm --filter @cloudflare-billing-helper/extension test",
+    "test:macos": "swift test --package-path apps/macos/Packages/BillingCore && swift test --package-path apps/macos",
+    "repro": "pnpm --filter @cloudflare-billing-helper/extension repro",
+    "screenshots": "pnpm --filter @cloudflare-billing-helper/extension screenshots",
+    "promo": "pnpm --filter @cloudflare-billing-helper/extension promo"
   }
 }
