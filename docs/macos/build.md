@@ -68,9 +68,9 @@ pnpm package:macos:direct
 
 如需新构建，使用 `CFBH_DIRECT_BUILD` 设置新构建号，归档和打包命令使用同一个值。脚本拒绝覆盖既有归档或 DMG，且拒绝打包未完成 Developer ID 签名、公证的应用。DMG 内的应用已签名、公证；DMG 容器本身不单独签名。
 
-本次文件位于 `apps/macos/build/direct-5/releases/`，发布到 R2 `blog`：
+当前官网版本为 1.1.0（6），文件位于 `apps/macos/build/direct-6/releases/`，发布到 R2 `blog`：
 
-- Mac：`downloads/cloudflare-billing-helper/macos/1.0.0-5/billing-helper-for-cloudflare-1.0.0-5-universal.dmg`
+- Mac：`downloads/cloudflare-billing-helper/macos/1.1.0-6/billing-helper-for-cloudflare-1.1.0-6-universal.dmg`（SHA-256 `57a6f4936fa0a922db5d87ff6aa2099e4bd64aa41459cc0e9ba0f96e8de5baec`）；1.0.0（5）的旧文件保留在 `macos/1.0.0-5/`
 - 扩展：`downloads/cloudflare-billing-helper/extension/0.2.0/cloudflare-billing-helper-0.2.0-chrome.zip`
 - 两个文件均附带同路径 `.sha256`，公开域名为 `https://i.meathill.com`。
 
