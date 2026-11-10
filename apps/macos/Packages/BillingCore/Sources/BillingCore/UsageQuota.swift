@@ -113,9 +113,12 @@ enum UsageQuotaBuilder {
             var overageCost: Decimal?
             if let included {
                 let cost = eligible.compactMap(\.cost).reduce(Decimal.zero, +)
+                // Cloudflare rounds some products up to whole pricing units (e.g. $5 per started million KV lists),
+                // so cost ÷ billable overstates the marginal price; it is only a fallback.
                 let price: Double?
-                if let billable, billable > 0, cost > 0 { price = NSDecimalNumber(decimal: cost).doubleValue / billable }
-                else { price = spec.unitPrice }
+                if let unitPrice = spec.unitPrice { price = unitPrice }
+                else if let billable, billable > 0, cost > 0 { price = NSDecimalNumber(decimal: cost).doubleValue / billable }
+                else { price = nil }
                 if let price { overageCost = Decimal(max(0, projectedTotal - included) * price) }
             }
             result.append(UsageQuota(serviceName: key.service, currency: key.currency, unit: spec.unit, used: used, billable: billable, included: included, includedSource: includedSource, asOf: asOf, dailyRate: rate, rateBasis: rateBasis, projectedTotal: projectedTotal, exhaustionDate: exhaustionDate, status: status, projectedOverageCost: overageCost, points: points, isComplete: complete))

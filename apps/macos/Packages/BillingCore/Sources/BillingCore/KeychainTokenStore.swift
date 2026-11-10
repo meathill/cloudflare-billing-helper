@@ -10,8 +10,7 @@ public struct KeychainTokenStore: TokenStore {
 
     public func save(_ token: String, accountID: String) throws {
         do {
-            try write(token, accountID: accountID, dataProtection: true)
-            deleteQuietly(billingTokenQuery(accountID: accountID, dataProtection: false))
+            try storeDataProtected(token, accountID: accountID)
         } catch let error as KeychainError where error.status == errSecMissingEntitlement {
             try write(token, accountID: accountID, dataProtection: false)
         }
@@ -22,10 +21,7 @@ public struct KeychainTokenStore: TokenStore {
         try rememberedToken(accountID: accountID, memory: memory) {
             if let token = try read(billingTokenQuery(accountID: accountID, dataProtection: true)) { return token }
             guard let legacy = try read(billingTokenQuery(accountID: accountID, dataProtection: false)) else { return nil }
-            if (try? write(legacy, accountID: accountID, dataProtection: true)) != nil,
-               try read(billingTokenQuery(accountID: accountID, dataProtection: true)) == legacy {
-                deleteQuietly(billingTokenQuery(accountID: accountID, dataProtection: false))
-            }
+            try? storeDataProtected(legacy, accountID: accountID)
             return legacy
         }
     }
@@ -34,6 +30,17 @@ public struct KeychainTokenStore: TokenStore {
         memory.remove(accountID)
         try remove(billingTokenQuery(accountID: accountID, dataProtection: true))
         try remove(billingTokenQuery(accountID: accountID, dataProtection: false))
+    }
+
+    /// Writes the data protection item and removes the legacy copy. A sandboxed app's query without
+    /// `kSecUseDataProtectionKeychain` can still reach the data protection keychain, so the cleanup may
+    /// delete the item just written; verify and write it again in that case.
+    private func storeDataProtected(_ token: String, accountID: String) throws {
+        let protected = billingTokenQuery(accountID: accountID, dataProtection: true)
+        try write(token, accountID: accountID, dataProtection: true)
+        deleteQuietly(billingTokenQuery(accountID: accountID, dataProtection: false))
+        if (try? read(protected)) != token { try write(token, accountID: accountID, dataProtection: true) }
+        guard try read(protected) == token else { throw KeychainError(errSecItemNotFound) }
     }
 
     private func write(_ token: String, accountID: String, dataProtection: Bool) throws {

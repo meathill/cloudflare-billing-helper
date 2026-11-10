@@ -35,6 +35,18 @@ private actor ImportGate {
         let allDefaults = defaults.dictionaryRepresentation().description
         XCTAssertFalse(allDefaults.contains("new-secret")); XCTAssertFalse(allDefaults.contains("existing-secret"))
     }
+    func testDiscoveryRestoresMissingTokenForExistingAccountWithoutDuplicating() async throws {
+        let lost = AccountProfile(id: "lost", name: "Lost"), kept = AccountProfile(id: "kept", name: "Kept"), tokens = ImportTokens()
+        try tokens.save("kept-secret", accountID: kept.id)
+        let refreshed = expectation(description: "restored account refreshed")
+        let (model, _) = try setup(profiles: [lost, kept], tokens: tokens, discover: { _ in [lost, kept] }, fetch: { account, _, _ in if account.id == lost.id { refreshed.fulfill() }; return self.result(account) })
+        await model.discoverAccounts(token: "new-secret")
+        XCTAssertEqual(model.missingTokenIDs, [lost.id]); XCTAssertEqual(model.selectedDiscoveredIDs, [lost.id])
+        XCTAssertTrue(model.importDiscovered())
+        XCTAssertEqual(model.accounts.map(\.id), [lost.id, kept.id])
+        XCTAssertEqual(tokens.values[lost.id], "new-secret"); XCTAssertEqual(tokens.values[kept.id], "kept-secret")
+        await fulfillment(of: [refreshed], timeout: 2)
+    }
     func testAllDuplicateAccountsDoNotSaveOrReplaceToken() async throws {
         let profile = AccountProfile(id: "existing", name: "Original"), tokens = ImportTokens(); try tokens.save("old", accountID: profile.id)
         let (model, _) = try setup(profiles: [profile], tokens: tokens, discover: { _ in [profile] }, fetch: { account, _, _ in self.result(account) })

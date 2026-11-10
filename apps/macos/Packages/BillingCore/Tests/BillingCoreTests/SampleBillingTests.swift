@@ -25,6 +25,9 @@ final class SampleBillingTests: XCTestCase {
         XCTAssertEqual(snapshot.usageTotalTrends?.first?.points.last?.cost, snapshot.totals.first?.usageCost)
         XCTAssertTrue(snapshot.usageTrends!.allSatisfy { trend in trend.points.last?.cost == snapshot.usageProductTotals?.first(where: { $0.serviceName == trend.serviceName })?.cost })
         XCTAssertTrue(snapshot.usage.allSatisfy { $0.period.end <= now })
+        let quota = try XCTUnwrap(snapshot.usageQuotas?.first)
+        XCTAssertEqual(quota.serviceName, "KV List Operations"); XCTAssertEqual(quota.used, 600_000)
+        XCTAssertEqual(quota.status, .danger); XCTAssertEqual(quota.exhaustionDate, parser.date(from: "2028-02-26T00:00:00Z"))
     }
     func testFirstDayDoesNotInventObservations() throws {
         let now = try XCTUnwrap(ISO8601DateFormatter().date(from: "2026-11-01T00:00:00Z"))

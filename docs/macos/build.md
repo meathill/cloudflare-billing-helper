@@ -50,18 +50,18 @@ These images are rendered from native views with sample data. The visual directi
 官网渠道使用 `DIRECT_DISTRIBUTION` 编译条件，关于页链接到 BMC，不包含 StoreKit 打赏实现。默认 Xcode 构建仍使用 StoreKit，已提交的 App Store 1.0.0（3）不受影响。不要从 App Store 归档重新签名生成官网包。
 
 ```bash
-# 构建通用归档，默认构建号为 5，启用 Hardened Runtime
+# 构建通用归档，默认构建号为 6，启用 Hardened Runtime
 pnpm archive:macos:direct
 # 使用 Xcode 账号与 Developer ID 云端签名，上传 Apple 公证
 xcodebuild -exportArchive \
-  -archivePath "$PWD/apps/macos/build/direct-5/CloudflareBillingHelper.xcarchive" \
+  -archivePath "$PWD/apps/macos/build/direct-6/CloudflareBillingHelper.xcarchive" \
   -exportOptionsPlist "$PWD/apps/macos/ExportOptions-Direct.plist" \
-  -exportPath "$PWD/apps/macos/build/direct-5/upload" \
+  -exportPath "$PWD/apps/macos/build/direct-6/upload" \
   -allowProvisioningUpdates
 # 公证处理完成后，导出已附加票据的应用
 xcodebuild -exportNotarizedApp \
-  -archivePath "$PWD/apps/macos/build/direct-5/CloudflareBillingHelper.xcarchive" \
-  -exportPath "$PWD/apps/macos/build/direct-5/notarized"
+  -archivePath "$PWD/apps/macos/build/direct-6/CloudflareBillingHelper.xcarchive" \
+  -exportPath "$PWD/apps/macos/build/direct-6/notarized"
 # 校验签名、票据与 Gatekeeper，再生成含 Applications 快捷方式的 DMG
 pnpm package:macos:direct
 ```

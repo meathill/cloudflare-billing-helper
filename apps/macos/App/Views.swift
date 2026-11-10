@@ -46,7 +46,7 @@ struct Panel: View {
                         Text(tr("Includes fixed cost; not an extra charge or final bill.", "已包含固定费，并非额外收费或最终账单。")).font(.caption).foregroundStyle(BrandPalette.muted).fixedSize(horizontal: false, vertical: true)
                     }
                     let alerts = quotaAlerts(snapshot, cycle: model.activeCycle)
-                    if !alerts.isEmpty { QuotaAlertList(quotas: Array(alerts.prefix(3)), compact: true) }
+                    if !alerts.isEmpty { QuotaAlertList(quotas: Array(alerts.prefix(3))) }
                     if !snapshot.isComplete { Label(tr("Some billing data is unavailable.", "部分账单数据不可用。"), systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(BrandPalette.warning) }
                     Text(tr("Last checked: ", "上次检查：") + formatDateTime(snapshot.checkedAt)).font(.caption).foregroundStyle(BrandPalette.muted)
                 } else if let activity = model.billingActivity { Text(activity).secondaryText().fixedSize(horizontal: false, vertical: true) }
@@ -78,6 +78,7 @@ struct SettingsView: View {
                                 .foregroundStyle(page == item ? BrandPalette.accentText : BrandPalette.text)
                                 .frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 14).padding(.vertical, 11)
                                 .background(page == item ? BrandPalette.selection : Color.clear, in: RoundedRectangle(cornerRadius: 8))
+                                .contentShape(RoundedRectangle(cornerRadius: 8))
                         }.buttonStyle(.plain).keyboardShortcut(item.shortcut, modifiers: .command).help(item.title + " (" + item.shortcutLabel + ")").accessibilityAddTraits(page == item ? .isSelected : [])
                     }
                 }.padding(.horizontal, 10)
@@ -115,44 +116,48 @@ private struct OverviewPage: View {
         if model.accounts.isEmpty {
             BillingSection(title: tr("No accounts", "尚无账户"), subtitle: tr("Add an account from the sidebar to see billing.", "前往账户页面添加账户后查看费用。")) { EmptyView() }
         } else {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack {
-                    Picker(tr("Account", "账户"), selection: Binding(get: { model.selectedID }, set: { model.select($0) })) { ForEach(model.accounts) { Text(accountDisplayName($0)).tag($0.id) } }.frame(maxWidth: 220)
-                    if let snapshot = model.current {
-                        Picker(tr("Billing cycle", "账期"), selection: Binding(get: { model.activeCycle }, set: { cycle in if let cycle, let account = model.accounts.first(where: { $0.id == model.selectedID }) { Task { await model.refresh(account, cycle: cycle) } } })) { ForEach(snapshot.cycles, id: \.self) { Text(cycleLabel($0)).tag(Optional($0)) } }
-                    }
-                    Spacer()
-                    Button { if let account = model.accounts.first(where: { $0.id == model.selectedID }) { Task { await model.refresh(account, cycle: model.activeCycle) } } } label: { Label(tr("Refresh", "刷新"), systemImage: "arrow.clockwise") }.disabled(model.loading || (model.demo && !model.isStoreScreenshot))
+            if let snapshot = model.current, usesWideOverview(contentWidth: contentWidth) {
+                HStack(alignment: .top, spacing: 16) {
+                    controls.frame(maxWidth: .infinity, alignment: .topLeading)
+                    costSummary(snapshot).frame(width: 300, alignment: .topLeading)
                 }
-                if model.isSampleSelected { Label(tr("Local sample data · not a Cloudflare account", "本地示例数据，非 Cloudflare 账户"), systemImage: "doc.text").font(.caption).foregroundStyle(BrandPalette.muted) }
-                if let snapshot = model.current {
-                    HStack { Text(tr("Last checked: ", "上次检查：") + formatDateTime(snapshot.checkedAt)); if let asOf = snapshot.sourceAsOf { Text("·"); Text(tr("Usage through: ", "用量数据截至：") + formatDateTime(asOf)) } }.font(.caption).foregroundStyle(BrandPalette.muted)
-                    if !model.demo && Freshness.isStale(checkedAt: snapshot.checkedAt) { Text(tr("Saved data may be out of date.", "缓存数据可能已过期。 ")).font(.caption).foregroundStyle(BrandPalette.warning) }
-                    if !snapshot.issues.isEmpty { DisclosureGroup(tr("Why data is incomplete", "数据不完整的原因")) { ForEach(Array(snapshot.issues.prefix(3).enumerated()), id: \.offset) { _, issue in Text(issueDescription(issue)).secondaryText().fixedSize(horizontal: false, vertical: true) } }.font(.caption) }
-                }
-                if let cycle = model.activeCycle { PeriodProgress(cycle: cycle, now: model.isDesignPreview ? (model.current?.checkedAt ?? Date()) : Date()) }
-                if let activity = model.billingActivity { HStack { ProgressView().controlSize(.small); Text(activity).secondaryText() } }
-                if let error = model.error { Text(error).foregroundStyle(BrandPalette.danger).fixedSize(horizontal: false, vertical: true) }
+            } else {
+                controls
+                if let snapshot = model.current { costSummary(snapshot) }
             }
             if let snapshot = model.current {
-                let alerts = quotaAlerts(snapshot, cycle: model.activeCycle)
-                if !alerts.isEmpty {
-                    BillingSection(title: tr("Free quota alerts", "免费额度预警"), subtitle: tr("Based on Cloudflare usage quantities and recent daily growth. Usage beyond the free quota is billed.", "根据 Cloudflare 用量与近期每日增量估算，超出免费额度的部分会计费。")) { QuotaAlertList(quotas: alerts) }
-                }
-                if usesWideOverview(contentWidth: contentWidth) {
-                    HStack(alignment: .top, spacing: 16) {
-                        costSummary(snapshot).frame(width: 300, alignment: .topLeading)
-                        trendSummary(snapshot).frame(width: max(0, contentWidth - 316), alignment: .topLeading)
-                    }
-                } else {
-                    VStack(alignment: .leading, spacing: 16) {
-                        costSummary(snapshot)
-                        trendSummary(snapshot)
-                    }
-                }
-                BillingSection(title: tr("Products", "产品明细"), subtitle: tr("Orange bars show each product's share of known usage charges. Free-quota bars below them show how much of the allowance is used.", "橙色条表示产品占已知按量费用的比例；其下的额度条表示免费额度已用比例。")) { ProductDetails(snapshot: snapshot, cycle: model.activeCycle, isSample: model.isSampleSelected) }
+                BillingSection(title: tr("Products", "产品明细"), subtitle: tr("Bars show free-quota usage when the product has a free allowance, otherwise its share of known usage charges.", "有免费额度的产品显示额度已用比例，其余产品显示占已知按量费用的比例。")) { ProductDetails(snapshot: snapshot, cycle: model.activeCycle, isSample: model.isSampleSelected) }
                 Text(tr("Cloudflare data may update daily. Estimates exclude taxes and credits and are not final invoices.", "Cloudflare 数据可能按日更新，估算不含税费与抵扣，也不是最终账单。 ")).secondaryText().fixedSize(horizontal: false, vertical: true)
             } else { BillingSection(title: tr("No saved billing data yet", "暂无保存的账单数据")) { EmptyView() } }
+        }
+    }
+    private var controls: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 8) {
+                GridRow {
+                    Text(tr("Account", "账户")).gridColumnAlignment(.trailing)
+                    Picker(tr("Account", "账户"), selection: Binding(get: { model.selectedID }, set: { model.select($0) })) { ForEach(model.accounts) { Text(accountDisplayName($0)).tag($0.id) } }.labelsHidden().frame(maxWidth: 280, alignment: .leading)
+                }
+                if let snapshot = model.current {
+                    GridRow {
+                        Text(tr("Billing cycle", "账期"))
+                        Picker(tr("Billing cycle", "账期"), selection: Binding(get: { model.activeCycle }, set: { cycle in if let cycle, let account = model.accounts.first(where: { $0.id == model.selectedID }) { Task { await model.refresh(account, cycle: cycle) } } })) { ForEach(snapshot.cycles, id: \.self) { Text(cycleLabel($0)).tag(Optional($0)) } }.labelsHidden().frame(maxWidth: 280, alignment: .leading)
+                    }
+                }
+                GridRow {
+                    Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
+                    Button { if let account = model.accounts.first(where: { $0.id == model.selectedID }) { Task { await model.refresh(account, cycle: model.activeCycle) } } } label: { Label(tr("Refresh", "刷新"), systemImage: "arrow.clockwise") }.disabled(model.loading || (model.demo && !model.isStoreScreenshot))
+                }
+            }
+            if model.isSampleSelected { Label(tr("Local sample data · not a Cloudflare account", "本地示例数据，非 Cloudflare 账户"), systemImage: "doc.text").font(.caption).foregroundStyle(BrandPalette.muted) }
+            if let snapshot = model.current {
+                HStack { Text(tr("Last checked: ", "上次检查：") + formatDateTime(snapshot.checkedAt)); if let asOf = snapshot.sourceAsOf { Text("·"); Text(tr("Usage through: ", "用量数据截至：") + formatDateTime(asOf)) } }.font(.caption).foregroundStyle(BrandPalette.muted)
+                if !model.demo && Freshness.isStale(checkedAt: snapshot.checkedAt) { Text(tr("Saved data may be out of date.", "缓存数据可能已过期。 ")).font(.caption).foregroundStyle(BrandPalette.warning) }
+                if !snapshot.issues.isEmpty { DisclosureGroup(tr("Why data is incomplete", "数据不完整的原因")) { ForEach(Array(snapshot.issues.prefix(3).enumerated()), id: \.offset) { _, issue in Text(issueDescription(issue)).secondaryText().fixedSize(horizontal: false, vertical: true) } }.font(.caption) }
+            }
+            if let cycle = model.activeCycle { PeriodProgress(cycle: cycle, now: model.isDesignPreview ? (model.current?.checkedAt ?? Date()) : Date()) }
+            if let activity = model.billingActivity { HStack { ProgressView().controlSize(.small); Text(activity).secondaryText() } }
+            if let error = model.error { Text(error).foregroundStyle(BrandPalette.danger).fixedSize(horizontal: false, vertical: true) }
         }
     }
     private func costSummary(_ snapshot: BillingSnapshot) -> some View {
@@ -171,9 +176,6 @@ private struct OverviewPage: View {
             if snapshot.fixedCostIsEstimate { Text(tr("Other service periods use current subscription prices; historical prices may differ.", "其他服务期按当前订阅价格推算，历史价格可能不同。 ")).secondaryText().fixedSize(horizontal: false, vertical: true) }
             if snapshot.forecastNote != nil { Text(tr("Forecast unavailable: not enough complete usage data.", "无法预测：完整用量数据不足。 ")).secondaryText().fixedSize(horizontal: false, vertical: true) }
         }
-    }
-    private func trendSummary(_ snapshot: BillingSnapshot) -> some View {
-        BillingSection(title: usesProductTrendFallback(snapshot: snapshot, cycle: model.activeCycle) ? tr("Product cost trends", "产品费用趋势") : tr("Cumulative usage charges", "累计按量费用趋势"), subtitle: tr("Observed amounts during this billing cycle.", "本账期已观察到的累计按量费用。")) { UsageTrendsSummary(snapshot: snapshot, cycle: model.activeCycle) }
     }
     private func amountRow(_ label: String, _ amount: String, strong: Bool = false) -> some View { HStack(alignment: .firstTextBaseline) { Text(label).fixedSize(horizontal: false, vertical: true); Spacer(minLength: 8); Text(amount).monospacedDigit().fontWeight(strong ? .semibold : .regular) }.font(strong ? .subheadline.weight(.semibold) : .callout) }
 }
@@ -226,9 +228,10 @@ private struct AccountsPage: View {
                     Text(tr("Select accounts to add", "选择要添加的账户")).font(.headline)
                     ForEach(model.discoveredAccounts) { account in
                         let exists = model.accounts.contains { $0.id == account.id }
+                        let restoring = model.missingTokenIDs.contains(account.id)
                         Toggle(isOn: Binding(get: { model.selectedDiscoveredIDs.contains(account.id) }, set: { checked in if checked { model.selectedDiscoveredIDs.insert(account.id) } else { model.selectedDiscoveredIDs.remove(account.id) } })) {
-                            VStack(alignment: .leading) { Text(account.name); Text(account.id + (exists ? tr(" (already added)", "（已添加）") : "")).font(.caption).foregroundStyle(BrandPalette.muted) }
-                        }.disabled(exists || model.importing)
+                            VStack(alignment: .leading) { Text(account.name); Text(account.id + (restoring ? tr(" (token missing; adding restores it)", "（令牌缺失，添加后恢复）") : (exists ? tr(" (already added)", "（已添加）") : ""))).font(.caption).foregroundStyle(restoring ? BrandPalette.warning : BrandPalette.muted) }
+                        }.disabled((exists && !restoring) || model.importing)
                     }
                     HStack { Button(tr("Add selected accounts", "添加所选账户")) { if model.importDiscovered() { discoveryToken = "" } }.disabled(model.importing || model.selectedDiscoveredIDs.isEmpty); Button(tr("Cancel", "取消")) { clearDiscovery() } }
                 }

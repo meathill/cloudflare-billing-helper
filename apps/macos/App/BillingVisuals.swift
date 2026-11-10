@@ -92,84 +92,6 @@ struct UsageTrendChart: View {
     }
 }
 
-func usableTrend(_ trend: UsageTrend, cycle: Cycle) -> Bool {
-    trend.source == "cumulative" && !trendSegments(trend.points, cycle: cycle).isEmpty
-}
-func usesProductTrendFallback(snapshot: BillingSnapshot, cycle: Cycle?) -> Bool {
-    guard let cycle, snapshot.selectedCycle == cycle else { return false }
-    let hasTotal = snapshot.usageTotalTrends?.contains { usableTrend($0, cycle: cycle) } ?? false
-    let hasProduct = snapshot.usageTrends?.contains { usableTrend($0, cycle: cycle) } ?? false
-    return !hasTotal && hasProduct
-}
-
-struct UsageTrendsSummary: View {
-    let snapshot: BillingSnapshot
-    let cycle: Cycle?
-    var body: some View {
-        if let cycle, snapshot.selectedCycle == cycle {
-            if snapshot.usageTotalTrends == nil && snapshot.usageTrends == nil {
-                Text(tr("Refresh to load the cumulative cost trend.", "刷新后加载累计费用趋势。")).secondaryText().fixedSize(horizontal: false, vertical: true)
-            } else {
-                let currencies = Set(snapshot.totals.map(\.currency) + (snapshot.usageTrends ?? []).map(\.currency) + (snapshot.usageTotalTrends ?? []).map(\.currency)).sorted()
-                if currencies.isEmpty { Text(tr("No trend data is available for this cycle.", "本账期暂无可用趋势数据。")).secondaryText() }
-                ForEach(currencies, id: \.self) { currency in
-                    let total = snapshot.usageTotalTrends?.first { $0.currency == currency && usableTrend($0, cycle: cycle) }
-                    let products = (snapshot.usageTrends ?? []).filter { $0.currency == currency && usableTrend($0, cycle: cycle) }
-                    if let total {
-                        VStack(alignment: .leading, spacing: 8) { Text(currency).font(.headline); UsageTrendChart(trend: total, cycle: cycle) }
-                    } else if !products.isEmpty {
-                        ProductTrendPicker(snapshot: snapshot, cycle: cycle, currency: currency, trends: products)
-                            .id("\(snapshot.accountID)|\(cycle.start.timeIntervalSince1970)|\(cycle.end.timeIntervalSince1970)|\(currency)")
-                    } else {
-                        VStack(alignment: .leading, spacing: 6) { Text(currency).font(.headline); Text(tr("No reliable trend data is available for this cycle.", "本账期暂无可信趋势数据。")).secondaryText().fixedSize(horizontal: false, vertical: true) }
-                    }
-                }
-            }
-        } else { Text(tr("Refresh to load the cumulative cost trend.", "刷新后加载累计费用趋势。")).secondaryText().fixedSize(horizontal: false, vertical: true) }
-    }
-}
-
-func orderedProductTrends(_ trends: [UsageTrend], snapshot: BillingSnapshot, cycle: Cycle, currency: String) -> [UsageTrend] {
-    let rows = usageDisplayRows(snapshot: snapshot, cycle: cycle) ?? []
-    func cost(_ trend: UsageTrend) -> Decimal? { rows.first { $0.currency == currency && $0.name == trend.serviceName }?.cost }
-    return trends.filter { $0.currency == currency && usableTrend($0, cycle: cycle) }.sorted { left, right in
-        switch (cost(left), cost(right)) {
-        case let (.some(a), .some(b)) where a != b: return a > b
-        case (.some, nil): return true
-        case (nil, .some): return false
-        default: return left.serviceName.localizedStandardCompare(right.serviceName) == .orderedAscending
-        }
-    }
-}
-func selectedProductTrend(_ trends: [UsageTrend], selectedName: String?) -> UsageTrend? {
-    trends.first(where: { $0.serviceName == selectedName }) ?? trends.first
-}
-
-private struct ProductTrendPicker: View {
-    let snapshot: BillingSnapshot
-    let cycle: Cycle
-    let currency: String
-    let trends: [UsageTrend]
-    @State private var selection: String?
-    private var options: [UsageTrend] { orderedProductTrends(trends, snapshot: snapshot, cycle: cycle, currency: currency) }
-    private var selected: UsageTrend? { selectedProductTrend(options, selectedName: selection) }
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(tr("Product dates differ; view one product's cumulative cost.", "各产品数据日期不同，先查看单个产品的累计费用。 ")).font(.caption).foregroundStyle(BrandPalette.muted).fixedSize(horizontal: false, vertical: true)
-            if let selected {
-                HStack {
-                    Text(tr("Product", "产品"))
-                    Picker(tr("Product", "产品"), selection: Binding(get: { selected.serviceName }, set: { selection = $0 })) {
-                        ForEach(Array(options.enumerated()), id: \.offset) { _, trend in Text(productTrendLabel(trend.serviceName)).lineLimit(1).truncationMode(.tail).tag(trend.serviceName) }
-                    }.labelsHidden().pickerStyle(.menu).frame(maxWidth: 240, alignment: .leading).clipped()
-                }
-                UsageTrendChart(trend: selected, cycle: cycle)
-            }
-        }.onAppear { if selection == nil { selection = options.first?.serviceName } }
-         .onChange(of: options.map(\.serviceName)) { names in if let selection, !names.contains(selection) { self.selection = names.first } }
-    }
-}
-
 private let displayCatalog: ProductCatalog? = Bundle.main.url(forResource: "catalog", withExtension: "json").flatMap { try? ProductCatalog(contentsOf: $0) }
 func serviceBaseName(_ name: String) -> String {
     name.replacingOccurrences(of: "\\s*\\([^()]*\\)\\s*$", with: "", options: .regularExpression).trimmingCharacters(in: .whitespacesAndNewlines)
@@ -218,6 +140,15 @@ func usageShareDenominator(rows: [UsageDisplayRow], reportedUsage: Decimal?) -> 
     return sum == reportedUsage ? reportedUsage : nil
 }
 
+/// A zero-cost product stays visible when its free quota is nearly used, already used, or projected to overflow.
+func quotaMayIncurCharges(_ quota: UsageQuota) -> Bool {
+    [.warn, .danger, .exhausted].contains(quota.status) || (quota.projectedOverageCost ?? 0) > 0
+}
+func usageShare(_ row: UsageDisplayRow, denominator: Decimal?) -> Double? {
+    guard let amount = row.cost, let denominator else { return nil }
+    let share = NSDecimalNumber(decimal: amount / denominator).doubleValue
+    return share.isFinite && share >= 0 && share <= 1 ? share : nil
+}
 /// Zero-cost rows collapse unless `keepVisible` says otherwise (e.g. a free quota that is running out).
 func partitionProducts(_ rows: [UsageDisplayRow], keepVisible: (UsageDisplayRow) -> Bool = { _ in false }) -> (visible: [UsageDisplayRow], zero: [UsageDisplayRow]) {
     let collapsed = rows.map { $0.cost == 0 && !keepVisible($0) }
@@ -243,8 +174,10 @@ struct ProductDetails: View {
             ForEach(currencies, id: \.self) { currency in
                 let currencyRows = usageRows.filter { $0.currency == currency }
                 let denominator = usageShareDenominator(rows: currencyRows, reportedUsage: snapshot.totals.first(where: { $0.currency == currency })?.usageCost)
-                let partition = partitionProducts(currencyRows) { row in usageQuota(for: row, in: snapshot).map { [.warn, .danger, .exhausted].contains($0.status) } ?? false }
-                let active = partition.visible
+                let partition = partitionProducts(currencyRows) { row in usageQuota(for: row, in: snapshot).map(quotaMayIncurCharges) ?? false }
+                // Products that may incur charges lead, since the overview no longer has a separate alert section.
+                let attention = partition.visible.filter { row in usageQuota(for: row, in: snapshot).map(quotaMayIncurCharges) ?? false }
+                let active = attention + partition.visible.filter { row in !attention.contains { $0.name == row.name } }
                 let zero = partition.zero
                 VStack(alignment: .leading, spacing: 14) {
                     Text(currency).font(.headline)
@@ -284,23 +217,25 @@ struct ProductDetails: View {
     @ViewBuilder private func productRow(_ row: UsageDisplayRow, family: String, denominator: Decimal?) -> some View {
         HStack(alignment: .top, spacing: 16) {
             VStack(alignment: .leading, spacing: 6) {
+                let quota = usageQuota(for: row, in: snapshot).flatMap { $0.included == nil ? nil : $0 }
+                let share = usageShare(row, denominator: denominator)
                 HStack {
                     Text(shortProductName(row.name)).fontWeight(.medium).accessibilityLabel(familyLabel(family) + ": " + shortProductName(row.name))
                     Spacer(minLength: 8)
+                    // With a free-quota bar, the cost share is shown as text so each row keeps a single bar.
+                    if let share, share > 0, quota != nil { Text(tr("\(share.formatted(.percent.precision(.fractionLength(1)))) of usage charges", "占按量费用 \(share.formatted(.percent.precision(.fractionLength(1))))")).font(.caption).foregroundStyle(BrandPalette.muted) }
                     Text(money(row.cost, row.currency)).monospacedDigit()
                 }
-                if let amount = row.cost, let denominator {
-                    let share = NSDecimalNumber(decimal: amount / denominator).doubleValue
-                    if share.isFinite && share >= 0 && share <= 1 {
-                        HStack(spacing: 8) {
-                            UsageShareBar(value: share)
-                            Text(share.formatted(.percent.precision(.fractionLength(1)))).font(.caption).foregroundStyle(BrandPalette.muted).accessibilityHidden(true)
-                        }
+                if let quota { QuotaUsageView(quota: quota) }
+                else if let share {
+                    HStack(spacing: 8) {
+                        UsageShareBar(value: share)
+                        Text(share.formatted(.percent.precision(.fractionLength(1)))).font(.caption).foregroundStyle(BrandPalette.muted).accessibilityHidden(true)
                     }
-                } else if let amount = row.cost, amount < 0 {
+                }
+                if let amount = row.cost, amount < 0 {
                     Text(tr("Negative adjustment", "负费用调整")).font(.caption).foregroundStyle(BrandPalette.muted)
                 }
-                if let quota = usageQuota(for: row, in: snapshot) { QuotaUsageView(quota: quota) }
                 DisclosureGroup(tr("Details", "详情")) {
                     let product = snapshot.usageProductTotals?.first { $0.currency == row.currency && $0.serviceName == row.name }
                     if let names = product?.rawServiceNames, !names.isEmpty { Text(tr("Cloudflare services: ", "Cloudflare 服务名：") + names.joined(separator: ", ")).secondaryText().fixedSize(horizontal: false, vertical: true) }
@@ -412,20 +347,13 @@ struct QuotaUsageView: View {
     }
 }
 
+/// One line per alert for the menu bar panel.
 struct QuotaAlertList: View {
     let quotas: [UsageQuota]
-    var compact = false
     var body: some View {
-        VStack(alignment: .leading, spacing: compact ? 4 : 12) {
+        VStack(alignment: .leading, spacing: 4) {
             ForEach(quotas, id: \.serviceName) { quota in
-                if compact {
-                    Label(productTrendLabel(quota.serviceName) + tr(": ", "：") + quotaStatusText(quota), systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(quotaColor(quota.status)).fixedSize(horizontal: false, vertical: true)
-                } else {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(productTrendLabel(quota.serviceName)).fontWeight(.medium)
-                        QuotaUsageView(quota: quota)
-                    }
-                }
+                Label(productTrendLabel(quota.serviceName) + tr(": ", "：") + quotaStatusText(quota), systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(quotaColor(quota.status)).fixedSize(horizontal: false, vertical: true)
             }
         }
     }

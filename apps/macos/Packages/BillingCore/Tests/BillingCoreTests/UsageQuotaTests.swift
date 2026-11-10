@@ -39,14 +39,14 @@ final class UsageQuotaTests: XCTestCase {
     }
 
     func testBillableQuantityOverridesCatalogAllowanceAndRecordsCrossingDate() throws {
-        let rows = (0..<5).map { index in day(index, 300_000, billable: index == 4 ? 500_000 : 0, cost: index == 4 ? Decimal(string: "2.5")! : 0) }
+        // Cloudflare bills a started million: $5 for 500k billable lists. The projection must still use $5 per million.
+        let rows = (0..<5).map { index in day(index, 300_000, billable: index == 4 ? 500_000 : 0, cost: index == 4 ? 5 : 0) }
         let quota = try XCTUnwrap(UsageQuotaBuilder.build(cycle: february, now: february.end, observations: rows, catalog: catalog).first)
         XCTAssertEqual(quota.billable, 500_000)
         XCTAssertEqual(quota.included, 1_000_000)
         XCTAssertEqual(quota.includedSource, "api")
         XCTAssertEqual(quota.status, .exhausted)
         XCTAssertEqual(quota.exhaustionDate, february.start.addingTimeInterval(4 * 86400))
-        // Observed price: $2.5 / 500k
         XCTAssertEqual(NSDecimalNumber(decimal: quota.projectedOverageCost!).doubleValue, (quota.projectedTotal - 1_000_000) * 0.000005, accuracy: 0.0001)
     }
 
@@ -79,7 +79,8 @@ final class UsageQuotaTests: XCTestCase {
     func testSnapshotCarriesQuotasFromBillableUsageQuantities() async throws {
         let rows = (0..<3).map { index -> String in
             let start = "2026-02-0\(index + 1)T00:00:00Z", end = "2026-02-0\(index + 2)T00:00:00Z"
-            return #"{"BillingPeriodStart":"2026-02-01T00:00:00Z","BillingCurrency":"USD","ContractedCost":0,"CumulatedContractedCost":0,"ConsumedQuantity":200000,"CumulatedPricingQuantity":0,"ChargePeriodStart":"\#(start)","ChargePeriodEnd":"\#(end)","ServiceName":"KV List Operations"}"#
+            let consumed = index == 1 ? #""200000""# : "200000"
+            return #"{"BillingPeriodStart":"2026-02-01T00:00:00Z","BillingCurrency":"USD","ContractedCost":0,"CumulatedContractedCost":0,"ConsumedQuantity":\#(consumed),"CumulatedPricingQuantity":null,"PricingQuantity":{"unexpected":true},"ChargePeriodStart":"\#(start)","ChargePeriodEnd":"\#(end)","ServiceName":"KV List Operations"}"#
         }
         let transport = QuotaTransport { path in
             if path.hasSuffix("/info") { return #"{"success":true,"result":{"covered":true,"subscriptions":[{"id":"s","billing_cycle_anchor_timestamp":"2026-02-01T00:00:00Z","start_timestamp":"2026-01-01T00:00:00Z"}]}}"# }
@@ -93,6 +94,24 @@ final class UsageQuotaTests: XCTestCase {
         XCTAssertEqual(quota.exhaustionDate, parser.date(from: "2026-02-06T00:00:00Z"))
         let decoded = try JSONDecoder().decode(BillingSnapshot.self, from: JSONEncoder().encode(snapshot))
         XCTAssertEqual(decoded.usageQuotas, snapshot.usageQuotas)
+    }
+
+    func testRealServiceNamesWithAllowanceNotesMatchCatalog() throws {
+        let base = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("packages/billing-spec/catalog.json")
+        let shared = try ProductCatalog(contentsOf: base)
+        let names = [
+            "KV List Operations (First 1M is included)": "kv-list-operations",
+            "Workers CPU ms (first 30M are included)": "workers-cpu-ms",
+            "Durable Objects Compute Duration (GB*S, First 400,000 GB*S is included)": "do-compute-duration",
+            "KV Storage (GB, First GB is included)": "kv-storage",
+            "D1 - Storage GB-mo (first 5GB included)": "d1-storage",
+            "Regular Twitch Neurons (RTN)": "regular-twitch-neurons",
+            "Worker Build Minutes (6000 minutes included per month)": "worker-build-minutes"
+        ]
+        for (name, key) in names { XCTAssertEqual(shared.product(for: name)?.key, key, name) }
+        XCTAssertNil(shared.product(for: "Something Else (First 1M is included)"))
+        let rows = (0..<3).map { day($0, 400_000, service: "KV List Operations (First 1M is included)") }
+        XCTAssertEqual(UsageQuotaBuilder.build(cycle: february, now: february.end, observations: rows, catalog: shared).first?.status, .exhausted)
     }
 
     func testOldSnapshotWithoutQuotasDecodes() throws {

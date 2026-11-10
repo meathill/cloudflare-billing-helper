@@ -30,12 +30,28 @@ public enum SampleBilling {
             productTotals.append(UsageProductTotal(serviceName: entry.name, currency: "USD", cost: entry.rate * Decimal(observedDays), source: "cumulative", isComplete: true, rawServiceNames: [entry.name]))
             if !points.isEmpty { trends.append(UsageTrend(currency: "USD", serviceName: entry.name, points: points, isComplete: true)) }
         }
+        // A free-tier product with no charges yet, on pace to use up its allowance this cycle.
+        let quotaService = "KV List Operations"
+        var quotaRows: [UsageQuantityObservation] = []
+        if observedDays > 0 {
+            var points: [UsageTrendPoint] = []
+            for day in 1...observedDays {
+                let period = Cycle(start: start.addingTimeInterval(Double(day - 1) * 86_400), end: start.addingTimeInterval(Double(day) * 86_400))
+                charges.append(UsageCharge(id: "sample-\(quotaService)-\(day)", currency: "USD", cost: 0, period: period, serviceName: quotaService))
+                quotaRows.append(UsageQuantityObservation(dimension: quotaService, serviceName: quotaService, currency: "USD", period: period, consumed: 40_000, cumulativeBillable: 0, cost: 0))
+                points.append(UsageTrendPoint(at: period.end, cost: 0, startsSegment: day == 1))
+            }
+            productTotals.append(UsageProductTotal(serviceName: quotaService, currency: "USD", cost: 0, source: "cumulative", isComplete: true, rawServiceNames: [quotaService + " (First 1M is included)"]))
+            trends.append(UsageTrend(currency: "USD", serviceName: quotaService, points: points, isComplete: true))
+        }
+        let quotaCatalog = try? ProductCatalog(data: Data(#"[{"key":"kv-list-operations","name":"KV List Operations","family":"kv","unit":"ops","included":1000000,"kind":"cumulative","unitPrice":0.000005}]"#.utf8))
+        let quotas = UsageQuotaBuilder.build(cycle: cycle, now: now, observations: quotaRows, catalog: quotaCatalog)
         let daily = entries.reduce(Decimal.zero) { $0 + $1.rate }
         let metered = daily * Decimal(observedDays)
         let forecast: Decimal? = observedDays > 0 ? 5 + daily * Decimal(daysInCycle) : nil
         let totals = [CurrencyTotals(currency: "USD", fixedCost: 5, usageCost: metered, forecastCost: forecast)]
         let totalPoints: [UsageTrendPoint] = observedDays > 0 ? (1...observedDays).map { UsageTrendPoint(at: start.addingTimeInterval(Double($0) * 86_400), cost: daily * Decimal($0), startsSegment: $0 == 1) } : []
         let totalTrends = totalPoints.isEmpty ? [] : [UsageTrend(currency: "USD", serviceName: "", points: totalPoints, isComplete: true)]
-        return BillingSnapshot(accountID: account.id, cycles: [cycle], totals: totals, checkedAt: now, isComplete: true, subscriptions: [fixed], usage: charges, sourceAsOf: totalPoints.last?.at, forecastIsEstimate: true, selectedCycle: cycle, forecastNote: forecast == nil ? "No complete sample day yet." : nil, usageProductTotals: productTotals, usageTrends: trends, usageTotalTrends: totalTrends)
+        return BillingSnapshot(accountID: account.id, cycles: [cycle], totals: totals, checkedAt: now, isComplete: true, subscriptions: [fixed], usage: charges, sourceAsOf: totalPoints.last?.at, forecastIsEstimate: true, selectedCycle: cycle, forecastNote: forecast == nil ? "No complete sample day yet." : nil, usageProductTotals: productTotals, usageTrends: trends, usageTotalTrends: totalTrends, usageQuotas: quotas)
     }
 }

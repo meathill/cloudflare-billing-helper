@@ -1,6 +1,6 @@
 # Privacy Policy — Billing Helper for Cloudflare®
 
-Effective date: November 5, 2026  
+Effective date: November 10, 2026  
 Developer: 肉山 (Meathill)  
 Contact: meathill@gmail.com
 
@@ -8,13 +8,13 @@ Billing Helper for Cloudflare® lets you connect Cloudflare accounts to view bil
 
 ## Information the app uses
 
-To retrieve your account, subscription and usage information, the app uses the read-only Cloudflare API token you supply. The app sends requests directly to Cloudflare and stores the token in macOS Keychain. Account settings and billing snapshots are stored locally on your Mac. The app uses this information to display costs, trends and optional budget notifications.
+To retrieve your account, subscription and usage information, the app uses the read-only Cloudflare API token you supply. The app sends requests directly to Cloudflare and stores the token in macOS Keychain. Account settings and billing snapshots are stored locally on your Mac. The app uses this information to display costs, trends, free-quota estimates and optional notifications.
 
 The app does not send your token or billing data to the developer. It does not include developer telemetry or advertising analytics. Cloudflare processes the requests under its own privacy terms.
 
 ## Notifications
 
-Budget notifications are optional. If enabled, a notification may contain an account name and an amount. You can manage notification permissions and display settings in macOS System Settings. Notifications already delivered are managed by macOS and are not automatically removed by the app.
+Budget and free-quota notifications are optional. If enabled, a notification may contain an account name, a product name and an amount. You can manage notification permissions and display settings in macOS System Settings. Notifications already delivered are managed by macOS and are not automatically removed by the app.
 
 ## Removing data
 
@@ -36,7 +36,7 @@ For questions about this policy or the macOS app, contact 肉山 (Meathill) at m
 
 # 隐私政策 — Billing Helper for Cloudflare®
 
-生效日期：2026 年 11 月 5 日  
+生效日期：2026 年 11 月 10 日  
 开发者：肉山（Meathill）  
 联系方式：meathill@gmail.com
 
@@ -44,13 +44,13 @@ Billing Helper for Cloudflare® 允许你连接 Cloudflare 账户以查看账单
 
 ## 应用使用的信息
 
-为获取账户、订阅和用量信息，应用使用你提供的 Cloudflare 只读 API 令牌直接向 Cloudflare 发送请求。令牌保存在 macOS 钥匙串，账户设置与账单快照保存在你的 Mac 本地。应用使用这些信息展示费用、趋势和可选的预算通知。
+为获取账户、订阅和用量信息，应用使用你提供的 Cloudflare 只读 API 令牌直接向 Cloudflare 发送请求。令牌保存在 macOS 钥匙串，账户设置与账单快照保存在你的 Mac 本地。应用使用这些信息展示费用、趋势、免费额度估算和可选通知。
 
 应用不会向开发者发送令牌或账单数据，也不包含开发者遥测或广告分析。Cloudflare 按其自身隐私条款处理请求。
 
 ## 通知
 
-预算通知为可选功能。启用后，通知可能包含账户名称和金额。你可以在 macOS 系统设置中管理通知权限和显示方式。已经送达的通知由 macOS 管理，应用不会自动清除。
+预算通知和免费额度通知均为可选功能。启用后，通知可能包含账户名称、产品名称和金额。你可以在 macOS 系统设置中管理通知权限和显示方式。已经送达的通知由 macOS 管理，应用不会自动清除。
 
 ## 删除数据
 

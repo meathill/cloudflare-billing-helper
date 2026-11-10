@@ -32,22 +32,6 @@ import BillingCore
         let one = try XCTUnwrap(observedTrendDomain(points: [first], cycle: cycle))
         XCTAssertLessThanOrEqual(one.upperBound, cycle.end); XCTAssertLessThan(one.lowerBound, one.upperBound)
     }
-    func testProductTrendFallbackDefaultsToHighestKnownCostAndRejectsStaleSelection() throws {
-        let start = Date(timeIntervalSince1970: 0), cycle = Cycle(start: start, end: start.addingTimeInterval(10 * 86400))
-        let point = UsageTrendPoint(at: start.addingTimeInterval(86400), cost: 1, startsSegment: true)
-        let low = UsageTrend(currency: "USD", serviceName: "Low", points: [point], isComplete: true)
-        let high = UsageTrend(currency: "USD", serviceName: "High", points: [point], isComplete: true)
-        let other = UsageTrend(currency: "EUR", serviceName: "Other", points: [point], isComplete: true)
-        let totals = [UsageProductTotal(serviceName: "Low", currency: "USD", cost: 1, source: "cumulative", isComplete: true), UsageProductTotal(serviceName: "High", currency: "USD", cost: 9, source: "cumulative", isComplete: true)]
-        let snapshot = BillingSnapshot(accountID: "a", cycles: [cycle], totals: [], checkedAt: start, isComplete: true, selectedCycle: cycle, usageProductTotals: totals, usageTrends: [low, other, high], usageTotalTrends: [])
-        XCTAssertTrue(usesProductTrendFallback(snapshot: snapshot, cycle: cycle))
-        let ordered = orderedProductTrends([low, other, high], snapshot: snapshot, cycle: cycle, currency: "USD")
-        XCTAssertEqual(ordered.map(\.serviceName), ["High", "Low"])
-        XCTAssertEqual(selectedProductTrend(ordered, selectedName: "stale")?.serviceName, "High")
-        XCTAssertEqual(selectedProductTrend(ordered, selectedName: "Low")?.serviceName, "Low")
-        let anotherCycle = Cycle(start: start.addingTimeInterval(86400), end: cycle.end)
-        XCTAssertFalse(usesProductTrendFallback(snapshot: snapshot, cycle: anotherCycle))
-    }
     func testUsageSharesRequireCompleteNonnegativeSameCurrencyDenominator() {
         let rows = [UsageDisplayRow(name: "A", currency: "USD", cost: 3, sourceLabel: ""), UsageDisplayRow(name: "B", currency: "USD", cost: 2, sourceLabel: "")]
         XCTAssertEqual(usageShareDenominator(rows: rows, reportedUsage: 5), 5)

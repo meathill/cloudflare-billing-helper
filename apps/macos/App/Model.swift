@@ -3,7 +3,10 @@ import AppKit
 import Network
 import ServiceManagement
 import UserNotifications
+import OSLog
 import BillingCore
+
+private let refreshLog = Logger(subsystem: "com.meathill.CloudflareBillingHelper", category: "refresh")
 
 var previewLanguage: String?
 func tr(_ en: String, _ zh: String) -> String { (previewLanguage ?? Locale.preferredLanguages.first ?? "en").hasPrefix("zh") ? zh : en }
@@ -50,6 +53,8 @@ private final class PreviewTokenStore: TokenStore {
     @Published var discoveredAccounts: [AccountProfile] = []
     @Published var selectedDiscoveredIDs = Set<String>()
     @Published var discoveryMessage: String?
+    /// Discovered accounts that are already added but whose Keychain token is missing; importing restores the token.
+    @Published private(set) var missingTokenIDs = Set<String>()
     private var discoveryEpoch = 0
     private var discoveredGenerations: [String: Int] = [:]
     private var activeDiscoveryToken: String?
@@ -221,13 +226,16 @@ private final class PreviewTokenStore: TokenStore {
             snapshots[account.id] = result; try cache.save(result); clearRetry(for: account.id); errors[account.id] = nil; if selectedID == account.id { budgetCurrency = result.totals.first?.currency ?? "USD"; loadBudget() }; notifyIfNeeded(result)
         } catch {
             guard generations[account.id] == generation, accounts.contains(where: { $0.id == account.id }) else { return }
+            // BillingError descriptions carry only status codes, error codes and field paths; other errors log only their domain and code.
+            let summary = error is BillingError || error is AppError ? String(describing: error) : "\((error as NSError).domain) \((error as NSError).code)"
+            refreshLog.error("Refresh failed: \(summary, privacy: .public)")
             let count = min((retries[account.id]?.failures ?? 0) + 1, 8)
             let paused: Bool
-            if case BillingError.invalidToken = error { paused = true } else if case BillingError.insufficientPermissions = error { paused = true } else { paused = false }
+            if case BillingError.invalidToken = error { paused = true } else if case BillingError.insufficientPermissions = error { paused = true } else if case AppError.missingToken = error { paused = true } else { paused = false }
             let delay = min(6 * 3600.0, 300.0 * pow(2.0, Double(count - 1)))
             let state = RetryState(failures: count, next: paused ? nil : clock().addingTimeInterval(delay), paused: paused)
             retries[account.id] = state; if let data = try? JSONEncoder().encode(state) { defaults.set(data, forKey: "retry.\(account.id)") }
-            if case BillingError.invalidToken = error { errors[account.id] = tr("API token is invalid.", "API 令牌无效。") } else if case BillingError.insufficientPermissions = error { errors[account.id] = tr("Token lacks billing permissions.", "令牌缺少账单读取权限。") } else { errors[account.id] = tr("Refresh failed. Showing saved data if available.", "刷新失败。如有缓存，将显示上次保存的数据。") }
+            if case BillingError.invalidToken = error { errors[account.id] = tr("API token is invalid.", "API 令牌无效。") } else if case BillingError.insufficientPermissions = error { errors[account.id] = tr("Token lacks billing permissions.", "令牌缺少账单读取权限。") } else if case AppError.missingToken = error { errors[account.id] = tr("This account's API token is missing from Keychain. Paste the token again on the Accounts page.", "钥匙串中找不到此账户的 API 令牌，请到账户页重新粘贴令牌。") } else if error is URLError { errors[account.id] = tr("Could not reach Cloudflare. Check your network, proxy or VPN. Showing saved data if available.", "连不上 Cloudflare，请检查网络、代理或 VPN。如有缓存，将显示上次保存的数据。") } else { errors[account.id] = tr("Refresh failed. Showing saved data if available.", "刷新失败。如有缓存，将显示上次保存的数据。") }
         }
     }
     func saveAccount(name: String, id: String, token: String) async -> Bool {
@@ -278,7 +286,7 @@ private final class PreviewTokenStore: TokenStore {
     }
     func cancelDiscovery() {
         discoveryEpoch += 1; discovering = false; importing = false
-        discoveredAccounts = []; selectedDiscoveredIDs = []; discoveredGenerations = [:]; activeDiscoveryToken = nil; discoveryMessage = nil
+        discoveredAccounts = []; selectedDiscoveredIDs = []; discoveredGenerations = [:]; activeDiscoveryToken = nil; discoveryMessage = nil; missingTokenIDs = []
     }
     func discoverAccounts(token: String) async {
         guard !demo, !discovering, !importing else { return }
@@ -292,7 +300,8 @@ private final class PreviewTokenStore: TokenStore {
             var seen = Set<String>()
             discoveredAccounts = results.filter { !$0.id.isEmpty && seen.insert($0.id).inserted }
             discoveredGenerations = Dictionary(uniqueKeysWithValues: discoveredAccounts.map { ($0.id, baseline[$0.id] ?? 0) })
-            selectedDiscoveredIDs = Set(discoveredAccounts.filter { candidate in !accounts.contains(where: { $0.id == candidate.id }) }.map(\.id))
+            missingTokenIDs = Set(discoveredAccounts.filter { candidate in accounts.contains(where: { $0.id == candidate.id && $0.source == .cloudflare }) && (try? tokens.load(accountID: candidate.id)) == nil }.map(\.id))
+            selectedDiscoveredIDs = Set(discoveredAccounts.filter { candidate in !accounts.contains(where: { $0.id == candidate.id }) || missingTokenIDs.contains(candidate.id) }.map(\.id))
             activeDiscoveryToken = token.trimmingCharacters(in: .whitespacesAndNewlines)
             if discoveredAccounts.isEmpty { discoveryMessage = tr("No accessible accounts were found.", "没有找到可访问的账户。") }
         } catch {
@@ -300,7 +309,10 @@ private final class PreviewTokenStore: TokenStore {
             if case AccountDiscoveryError.invalidToken = error { discoveryMessage = tr("API token is invalid.", "API 令牌无效。") }
             else if case AccountDiscoveryError.insufficientPermissions = error { discoveryMessage = tr("The token cannot list accounts. Check its Account Read permissions or use advanced manual setup.", "令牌无法列出账户，请检查账户读取权限或使用高级手动设置。") }
             else if case AccountDiscoveryError.noAccounts = error { discoveryMessage = tr("No accessible accounts were found.", "没有找到可访问的账户。") }
-            else { discoveryMessage = tr("Could not find accounts. Check your connection and try again, or use advanced manual setup.", "无法获取账户，请检查网络后重试，或使用高级手动设置。") }
+            else if case AccountDiscoveryError.networkError = error { discoveryMessage = tr("Could not reach Cloudflare (api.cloudflare.com). Your token was not checked. Check your network, proxy or VPN, then try again.", "连不上 Cloudflare（api.cloudflare.com），令牌还没有被校验。请检查网络、代理或 VPN 后重试。") }
+            else if case AccountDiscoveryError.httpStatus(let status) = error { discoveryMessage = tr("Cloudflare returned HTTP \(status) while listing accounts. Try again later, or use advanced manual setup.", "Cloudflare 列出账户时返回 HTTP \(status)，请稍后重试，或使用高级手动配置。") }
+            else { discoveryMessage = tr("Cloudflare returned an unexpected account list. Try again later, or use advanced manual setup.", "Cloudflare 返回的账户列表无法识别，请稍后重试，或使用高级手动配置。") }
+            refreshLog.error("Account discovery failed: \(String(describing: error), privacy: .public)")
         }
     }
     func importDiscovered() -> Bool {
@@ -311,11 +323,12 @@ private final class PreviewTokenStore: TokenStore {
         var added: [AccountProfile] = [], skipped = 0, failed = 0
         var remaining = Set<String>()
         for account in chosen {
-            guard !savingIDs.contains(account.id), !accounts.contains(where: { $0.id == account.id }), generations[account.id, default: 0] == discoveredGenerations[account.id] else { skipped += 1; continue }
+            let restoring = missingTokenIDs.contains(account.id)
+            guard !savingIDs.contains(account.id), restoring || !accounts.contains(where: { $0.id == account.id }), generations[account.id, default: 0] == discoveredGenerations[account.id] else { skipped += 1; continue }
             let generation = (generations[account.id] ?? 0) + 1; generations[account.id] = generation
             do {
                 try tokens.save(token, accountID: account.id)
-                accounts.append(account); clearRetry(for: account.id)
+                if !restoring { accounts.append(account) }; clearRetry(for: account.id)
                 errors[account.id] = nil; queuedBillingIDs.insert(account.id)
                 if selectedID.isEmpty { selectedID = account.id; syncSelectedBudget() }
                 persist(); added.append(account)
@@ -327,7 +340,7 @@ private final class PreviewTokenStore: TokenStore {
             discoveryMessage = tr("Added \(added.count); skipped \(skipped). Could not save \(failed) account(s) in Keychain; try again.", "已添加 \(added.count) 个，跳过 \(skipped) 个；\(failed) 个账户无法保存到钥匙串，请重试。")
             return false
         }
-        discoveredAccounts = []; selectedDiscoveredIDs = []; discoveredGenerations = [:]; activeDiscoveryToken = nil
+        discoveredAccounts = []; selectedDiscoveredIDs = []; discoveredGenerations = [:]; activeDiscoveryToken = nil; missingTokenIDs = []
         discoveryMessage = tr("Added \(added.count) account(s); skipped \(skipped) existing or changed account(s). Billing data will be checked separately.", "已添加 \(added.count) 个账户，跳过 \(skipped) 个已存在或已变更的账户。账单数据将单独检查。")
         return true
     }

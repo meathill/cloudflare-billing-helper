@@ -18,7 +18,17 @@ private struct Info: Decodable { let covered: Bool; let subscriptions: [Anchor] 
 private struct Anchor: Decodable { let id: String; let billing_cycle_anchor_timestamp: String; let start_timestamp: String; let end_timestamp: String? }
 private struct Subscription: Decodable { let id: String?; let currency: String?; let price: Decimal?; let current_period_start: String?; let current_period_end: String?; let state: String?; let frequency: String?; let initial_period_start: String?; let rate_plan: RatePlan? }
 private struct Zone: Decodable { let id: String; let name: String }
-private struct Usage: Decodable { let BillingCurrency: String?; let ContractedCost: Decimal?; let CumulatedContractedCost: Decimal?; let ConsumedQuantity: Double?; let CumulatedPricingQuantity: Double?; let ChargePeriodStart: String?; let ChargePeriodEnd: String?; let ServiceName: String?; let SubscriptionId: String?; let ZoneId: String?; let BillingPeriodStart: String?; let PricingUnit: String?; let ConsumedUnit: String?; let ChargeDescription: String?; let ServiceFamilyName: String? }
+/// Quantities only feed quota estimates: accept numbers or numeric strings and never fail the whole response.
+struct LenientNumber: Decodable {
+    let value: Double?
+    init(from decoder: Decoder) throws {
+        let container = try? decoder.singleValueContainer()
+        if let number = try? container?.decode(Double.self) { value = number }
+        else if let text = try? container?.decode(String.self) { value = Double(text.trimmingCharacters(in: .whitespaces)) }
+        else { value = nil }
+    }
+}
+private struct Usage: Decodable { let BillingCurrency: String?; let ContractedCost: Decimal?; let CumulatedContractedCost: Decimal?; let ConsumedQuantity: LenientNumber?; let CumulatedPricingQuantity: LenientNumber?; let ChargePeriodStart: String?; let ChargePeriodEnd: String?; let ServiceName: String?; let SubscriptionId: String?; let ZoneId: String?; let BillingPeriodStart: String?; let PricingUnit: String?; let ConsumedUnit: String?; let ChargeDescription: String?; let ServiceFamilyName: String? }
 private struct UsageDimension: Hashable {
     let subscription: String?; let zone: String?; let currency: String?; let service: String?; let family: String?; let description: String?; let pricingUnit: String?; let consumedUnit: String?; let billingStart: String?
     init(_ row: Usage) { subscription = row.SubscriptionId; zone = row.ZoneId; currency = row.BillingCurrency; service = row.ServiceName; family = row.ServiceFamilyName; description = row.ChargeDescription; pricingUnit = row.PricingUnit; consumedUnit = row.ConsumedUnit; billingStart = row.BillingPeriodStart }
@@ -242,7 +252,7 @@ public struct BillingService {
             guard let encodedID = try? JSONEncoder().encode(identity) else { issues.append("Usage identity encoding unavailable"); return nil }
             let id = encodedID.base64EncodedString()
             if !usageKeys.insert(id).inserted { issues.append("Ambiguous duplicate usage dimensions: \(index)") }
-            else { dimensions[id] = UsageDimension(item); cumulativeCosts[id] = item.CumulatedContractedCost; quantities[id] = (item.ConsumedQuantity, item.CumulatedPricingQuantity) }
+            else { dimensions[id] = UsageDimension(item); cumulativeCosts[id] = item.CumulatedContractedCost; quantities[id] = (item.ConsumedQuantity?.value, item.CumulatedPricingQuantity?.value) }
             return UsageCharge(id: id, currency: currency, cost: item.ContractedCost, period: Cycle(start: start, end: end), serviceName: catalog?.product(for: item.ServiceName ?? "")?.name ?? item.ServiceName ?? "")
         }
         let kvRows = records.result.filter { row in

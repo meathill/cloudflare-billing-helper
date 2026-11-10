@@ -2,7 +2,7 @@
 set -eu
 cd "$(dirname "$0")/.."
 
-build="${CFBH_DIRECT_BUILD:-5}"
+build="${CFBH_DIRECT_BUILD:-6}"
 output="${CFBH_DIRECT_OUTPUT:-$PWD/build/direct-$build}"
 archive="$output/CloudflareBillingHelper.xcarchive"
 if [ -e "$archive" ]; then

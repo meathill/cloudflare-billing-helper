@@ -18,8 +18,11 @@ public struct ProductCatalog {
     public let products: [CatalogProduct]
     public init(data: Data) throws { products = try JSONDecoder().decode([CatalogProduct].self, from: data) }
     public init(contentsOf url: URL) throws { try self.init(data: Data(contentsOf: url)) }
+    /// Cloudflare service names may carry a trailing allowance note, e.g. "KV List Operations (First 1M is included)".
     public func product(for serviceName: String) -> CatalogProduct? {
         let normalized = serviceName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        return products.first { $0.name.lowercased() == normalized || $0.key.lowercased() == normalized || ($0.aliases ?? []).contains(where: { normalized.hasPrefix($0.lowercased()) }) }
+        let base = normalized.replacingOccurrences(of: "\\s*\\([^()]*\\)\\s*$", with: "", options: .regularExpression)
+        func matches(_ name: String) -> CatalogProduct? { products.first { $0.name.lowercased() == name || $0.key.lowercased() == name || ($0.aliases ?? []).contains(where: { name.hasPrefix($0.lowercased()) }) } }
+        return matches(normalized) ?? (base.isEmpty || base == normalized ? nil : matches(base))
     }
 }

@@ -2,7 +2,7 @@
 set -eu
 cd "$(dirname "$0")/.."
 
-output="${CFBH_DIRECT_OUTPUT:-$PWD/build/direct-${CFBH_DIRECT_BUILD:-5}}"
+output="${CFBH_DIRECT_OUTPUT:-$PWD/build/direct-${CFBH_DIRECT_BUILD:-6}}"
 app="${1:-$output/notarized/CloudflareBillingHelper.app}"
 binary="$app/Contents/MacOS/CloudflareBillingHelper"
 codesign --verify --deep --strict "$app"

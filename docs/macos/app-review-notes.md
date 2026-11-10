@@ -1,6 +1,6 @@
 # App Review notes
 
-These notes describe the built-in Sample account in the current universal 1.0.0 build. The Sample is visible, removable and restorable; it is not a separate global demo mode. No reviewer credentials or private contact information belong in this file.
+These notes describe the built-in Sample account in the current universal 1.1.0 build. The Sample is visible, removable and restorable; it is not a separate global demo mode. No reviewer credentials or private contact information belong in this file.
 
 ## English
 
